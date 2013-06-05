@@ -1,4 +1,4 @@
 dasein-cloud-tier3
-==================
+===================
 
-Dasein Cloud implementation for Tier 3
+An implementation of the Dasein Cloud API for Tier3.
