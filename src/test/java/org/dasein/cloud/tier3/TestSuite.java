@@ -17,7 +17,7 @@
  * ====================================================================
  */
 
-package org.dasein.cloud.dell.asm;
+package org.dasein.cloud.tier3;
 
 import org.dasein.cloud.test.GlobalTestSuite;
 
