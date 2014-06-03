@@ -19,13 +19,11 @@
 
 package org.dasein.cloud.tier3;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import org.apache.commons.codec.binary.Base32;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.AbstractCloud;
 import org.dasein.cloud.ProviderContext;
