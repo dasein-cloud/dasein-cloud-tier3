@@ -1,9 +1,8 @@
 package org.dasein.cloud.tier3;
 
 public class NoContextException extends ConfigurationException {
-    /**
-     * Constructs an exception representing the lack of context.
-     */
-    public NoContextException() { super("No context was set for this request"); }
+	private static final long serialVersionUID = 4728360671690748932L;
+
+	public NoContextException() { super("No context was set for this request"); }
 }
 
