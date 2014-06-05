@@ -218,8 +218,12 @@ public class Tier3Image implements MachineImageSupport {
 			if (json.has("Templates")) {
 				for (int i = 0; i < json.getJSONArray("Templates").length(); i++) {
 					MachineImage image = toMachineImage(json.getJSONArray("Templates").getJSONObject(i));
-					if (image != null && options.matches(image)) {
+					if (options == null) {
 						images.add(image);
+					} else {
+						if (image != null && options.matches(image)) {
+							images.add(image);
+						}
 					}
 				}
 			}
