@@ -65,8 +65,4 @@ public class Tier3ComputeServices extends AbstractComputeServices {
 //	public SnapshotSupport getSnapshotSupport() {
 //		return new Tier3Snapshot(provider);
 //	}
-	
-	protected Tier3ComputeTranslations getComputeTranslations() {
-		return new Tier3ComputeTranslations();
-	}
 }
