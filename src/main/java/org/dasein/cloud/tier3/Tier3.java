@@ -27,6 +27,9 @@ import javax.annotation.Nullable;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.AbstractCloud;
 import org.dasein.cloud.ProviderContext;
+import org.dasein.cloud.compute.ComputeServices;
+import org.dasein.cloud.tier3.compute.Tier3ComputeServices;
+import org.dasein.cloud.tier3.compute.Tier3ComputeTranslations;
 import org.json.JSONObject;
 
 /**
@@ -85,7 +88,7 @@ public class Tier3 extends AbstractCloud {
 	DataCenters getDataCenterServices() {
 		return new DataCenters(this);
 	}
-
+	
 	@Override
 	public @Nonnull
 	String getProviderName() {
@@ -93,6 +96,15 @@ public class Tier3 extends AbstractCloud {
 		String name = (ctx == null ? null : ctx.getProviderName());
 
 		return (name == null ? "CenturyLink" : name);
+	}
+
+	@Override
+	public ComputeServices getComputeServices() {
+		return new Tier3ComputeServices(this);
+	}
+	
+	public Tier3ComputeTranslations getComputeTranslations() {
+		return new Tier3ComputeTranslations();
 	}
 
 	@Override
