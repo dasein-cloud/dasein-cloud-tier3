@@ -28,8 +28,11 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.AbstractCloud;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.ComputeServices;
+import org.dasein.cloud.network.NetworkServices;
 import org.dasein.cloud.tier3.compute.Tier3ComputeServices;
 import org.dasein.cloud.tier3.compute.Tier3ComputeTranslations;
+import org.dasein.cloud.tier3.network.Tier3NetworkServices;
+import org.dasein.cloud.tier3.network.Tier3NetworkTranslations;
 import org.json.JSONObject;
 
 /**
@@ -105,6 +108,15 @@ public class Tier3 extends AbstractCloud {
 	
 	public Tier3ComputeTranslations getComputeTranslations() {
 		return new Tier3ComputeTranslations();
+	}
+
+	@Override
+	public NetworkServices getNetworkServices() {
+		return new Tier3NetworkServices(this);
+	}
+	
+	public Tier3NetworkTranslations getNetworkTranslations() {
+		return new Tier3NetworkTranslations();
 	}
 
 	@Override
