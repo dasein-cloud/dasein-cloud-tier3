@@ -1,16 +1,14 @@
 package org.dasein.cloud.tier3.compute.image;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
-
-import javax.naming.OperationNotSupportedException;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.AsynchronousTask;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
+import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.Requirement;
 import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
@@ -24,7 +22,6 @@ import org.dasein.cloud.compute.MachineImageState;
 import org.dasein.cloud.compute.MachineImageSupport;
 import org.dasein.cloud.compute.MachineImageType;
 import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.VirtualMachine;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.tier3.APIHandler;
 import org.dasein.cloud.tier3.APIResponse;
@@ -48,24 +45,24 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public void addImageShare(String providerImageId, String accountNumber) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public void addPublicShare(String providerImageId) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public String bundleVirtualMachine(String virtualMachineId, MachineImageFormat format, String bucket, String name)
 			throws CloudException, InternalException {
-		return null;
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public void bundleVirtualMachineAsync(String virtualMachineId, MachineImageFormat format, String bucket,
 			String name, AsynchronousTask<String> trackingTask) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
@@ -96,7 +93,7 @@ public class Tier3Image implements MachineImageSupport {
 
 			MachineImage image = toMachineImage(response.getJSON());
 			return image;
-			
+
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -137,9 +134,9 @@ public class Tier3Image implements MachineImageSupport {
 	public String getProviderTermForImage(Locale locale, ImageClass cls) {
 		switch (cls) {
 		case KERNEL:
-			return null;
+			return "n/a";
 		case RAMDISK:
-			return null;
+			return "n/a";
 		default:
 			break;
 		}
@@ -252,7 +249,7 @@ public class Tier3Image implements MachineImageSupport {
 			MachineImage image = MachineImage.getMachineImageInstance(provider.getContext().getAccountNumber(), "*", ob
 					.getString("ID"), MachineImageState.ACTIVE, ob.getString("Name"), ob.getString("Description"),
 					provider.getComputeTranslations().toArchitecture(ob.getString("Name")), provider
-							.getComputeTranslations().toPlatform(ob.getString("Name")));
+							.getComputeTranslations().toPlatform(ob.getString("Name").toLowerCase()));
 
 			if (ob.has("Cpu")) {
 				image.setTag("Cpu", ob.get("Cpu").toString());
@@ -269,7 +266,6 @@ public class Tier3Image implements MachineImageSupport {
 			if (ob.has("RequestID")) {
 				image.setTag("ResourceID", ob.get("ResourceID").toString());
 			}
-			
 
 			return image;
 		} catch (JSONException e) {
@@ -309,18 +305,17 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
-        return Collections.singletonList(ImageClass.MACHINE);
+		return Collections.singletonList(ImageClass.MACHINE);
 	}
 
 	@Override
 	public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
-        return Collections.singletonList(MachineImageType.VOLUME);
+		return Collections.singletonList(MachineImageType.VOLUME);
 	}
 
 	@Override
 	public MachineImage registerImageBundle(ImageCreateOptions options) throws CloudException, InternalException {
-        // unimplemented
-		return null;
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
@@ -328,7 +323,7 @@ public class Tier3Image implements MachineImageSupport {
 		APITrace.begin(provider, "remove");
 		try {
 			MachineImage image = getImage(providerImageId);
-			
+
 			APIHandler method = new APIHandler(provider);
 			JSONObject post = new JSONObject();
 			post.put("Name", image.getName());
@@ -347,18 +342,17 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public void removeAllImageShares(String providerImageId) throws CloudException, InternalException {
-		// unimplemented
-
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public void removeImageShare(String providerImageId, String accountNumber) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public void removePublicShare(String providerImageId) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
@@ -366,46 +360,46 @@ public class Tier3Image implements MachineImageSupport {
 			Architecture architecture, ImageClass... imageClasses) throws CloudException, InternalException {
 		ArrayList<MachineImage> images = new ArrayList<MachineImage>();
 		for (MachineImage image : listImages((ImageFilterOptions) null)) {
-			for (int i=0; i < imageClasses.length; i++) {
+			for (int i = 0; i < imageClasses.length; i++) {
 				// test keyword
-				if (image.getName() != null) {
-					if (keyword != null && image.getName().contains(keyword)) {
-						if (!images.contains(image)) {
-							images.add(image);
-						}
-					}
-				}
-				if (image.getDescription() != null) {
-					if (keyword != null && image.getDescription().contains(keyword)) {
-						if (!images.contains(image)) {
-							images.add(image);
-						}
-					}
-				}
-				if (image.getTags() != null) {
-					for (String key : image.getTags().keySet()) {
-						if (image.getTag(key) != null && image.getTag(key).toString().contains(keyword)) {
+				if (keyword != null) {
+					if (image.getName() != null) {
+						if (image.getName().contains(keyword)) {
 							if (!images.contains(image)) {
 								images.add(image);
 							}
 						}
 					}
+					if (image.getDescription() != null) {
+						if (image.getDescription().contains(keyword)) {
+							if (!images.contains(image)) {
+								images.add(image);
+							}
+						}
+					}
+					if (image.getTags() != null) {
+						for (String value : image.getTags().values()) {
+							if (value != null && value.contains(keyword)) {
+								images.add(image);
+							}
+						}
+					}
 				}
-				
+
 				// test platform
 				if (platform != null && image.getPlatform().compareTo(platform) == 0) {
 					if (!images.contains(image)) {
 						images.add(image);
 					}
 				}
-				
+
 				// test architecture
 				if (architecture != null && image.getArchitecture().compareTo(architecture) == 0) {
 					if (!images.contains(image)) {
 						images.add(image);
 					}
 				}
-				
+
 				// test image class
 				if (imageClasses[i] == image.getImageClass()) {
 					if (!images.contains(image)) {
@@ -426,19 +420,19 @@ public class Tier3Image implements MachineImageSupport {
 	@Override
 	public Iterable<MachineImage> searchPublicImages(ImageFilterOptions options) throws InternalException,
 			CloudException {
-		return null;
+		return Collections.emptyList();
 	}
 
 	@Override
 	public Iterable<MachineImage> searchPublicImages(String keyword, Platform platform, Architecture architecture,
 			ImageClass... imageClasses) throws CloudException, InternalException {
-		return null;
+		return Collections.emptyList();
 	}
 
 	@Override
 	public void shareMachineImage(String providerImageId, String withAccountId, boolean allow) throws CloudException,
 			InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
@@ -453,7 +447,10 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
-		return true;
+		if (type != null && type == MachineImageType.VOLUME) {
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -473,21 +470,21 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public void updateTags(String imageId, Tag... tags) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public void updateTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public void removeTags(String imageId, Tag... tags) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public void removeTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
-		// unimplemented
+		throw new OperationNotSupportedException();
 	}
 }
