@@ -43,10 +43,10 @@ public class Tier3ComputeServices extends AbstractComputeServices {
 		return false;
 	}
 
-//	@Override
-//	public VolumeSupport getVolumeSupport() {
-//		return new Tier3Storage(provider);
-//	}
+	// @Override
+	// public VolumeSupport getVolumeSupport() {
+	// return new Tier3Storage(provider);
+	// }
 
 	@Override
 	public boolean hasAutoScalingSupport() {
@@ -55,7 +55,7 @@ public class Tier3ComputeServices extends AbstractComputeServices {
 
 	@Override
 	public boolean hasSnapshotSupport() {
-		return true;
+		return false;
 	}
 
 	@Override
