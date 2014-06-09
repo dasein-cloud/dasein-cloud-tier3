@@ -83,15 +83,8 @@ public class Tier3Image implements MachineImageSupport {
 				throw new CloudException("No server was created");
 			}
 
-			post = new JSONObject();
-			post.put("RequestId", response.getJSON().getInt("RequestID"));
-			response = method.post("Blueprint/GetDeploymentStatus/JSON", post.toString());
-
-			if (response == null) {
-				throw new CloudException("Could not retrieve template build request");
-			}
-
-			MachineImage image = toMachineImage(response.getJSON());
+			JSONObject deployStatus = provider.getDeploymentStatus(response.getJSON().getInt("RequestID"));
+			MachineImage image = toMachineImage(deployStatus);
 			return image;
 
 		} catch (JSONException e) {
@@ -155,7 +148,7 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-		return Requirement.NONE;
+		return Requirement.REQUIRED;
 	}
 
 	@Override
@@ -171,7 +164,7 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public boolean isSubscribed() throws CloudException, InternalException {
-		return true;
+		return false;
 	}
 
 	@Override
