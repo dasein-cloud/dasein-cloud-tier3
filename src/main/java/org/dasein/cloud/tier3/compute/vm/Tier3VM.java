@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
+import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.Requirement;
 import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
@@ -29,10 +30,13 @@ import org.dasein.cloud.compute.VmState;
 import org.dasein.cloud.compute.VmStatistics;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.network.RawAddress;
+import org.dasein.cloud.network.VLAN;
 import org.dasein.cloud.tier3.APIHandler;
 import org.dasein.cloud.tier3.APIResponse;
 import org.dasein.cloud.tier3.Tier3;
+import org.dasein.cloud.tier3.compute.Tier3OS;
 import org.dasein.cloud.util.APITrace;
+import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Gigabyte;
 import org.dasein.util.uom.storage.Storage;
 import org.json.JSONArray;
@@ -108,12 +112,12 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public void disableAnalytics(String vmId) throws InternalException, CloudException {
-		throw new OperationNotSupportedException();
+		// unimplemented
 	}
 
 	@Override
 	public void enableAnalytics(String vmId) throws InternalException, CloudException {
-		throw new OperationNotSupportedException();
+		// unimplemented
 	}
 
 	@Override
@@ -148,6 +152,7 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public VirtualMachine getVirtualMachine(String vmId) throws InternalException, CloudException {
+		System.out.println("CTS getVirtualMachine input: " + vmId);
 		APITrace.begin(provider, "getVirtualMachine");
 		APIHandler method = new APIHandler(provider);
 
@@ -157,11 +162,12 @@ public class Tier3VM implements VirtualMachineSupport {
 			APIResponse response = method.post("Server/GetServer/JSON", json.toString());
 
 			json = response.getJSON();
-			if (json.has("Success") && !json.getBoolean("Success")) {
+			if ((json.has("Success") && !json.getBoolean("Success")) || !json.has("Server")) {
 				logger.warn(json.getString("Message"));
 				return null;
 			}
-			return toVirtualMachine(new JSONObject(json));
+			System.out.println("CTS getVirtualMachine toVirtualMachine input: " + json.toString());
+			return toVirtualMachine(json.getJSONObject("Server"));
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -173,6 +179,7 @@ public class Tier3VM implements VirtualMachineSupport {
 		if (ob == null) {
 			return null;
 		}
+		System.out.println("CTS toVirtualMachine input: " + ob.toString());
 		try {
 			VirtualMachine vm = new VirtualMachine();
 
@@ -191,9 +198,10 @@ public class Tier3VM implements VirtualMachineSupport {
 			}
 
 			if (ob.has("ID")) {
-				vm.setProviderVirtualMachineId(ob.getString("ID"));
+				vm.addTag(new Tag("ServerID", ob.getString("ID")));
 			}
 			if (ob.has("Name")) {
+				vm.setProviderVirtualMachineId(ob.getString("Name"));
 				vm.setName(ob.getString("Name"));
 			}
 			if (ob.has("IPAddresses") && ob.get("IPAddresses") != null) {
@@ -219,13 +227,11 @@ public class Tier3VM implements VirtualMachineSupport {
 			}
 			vm.setPausable(false);
 			vm.setRebootable(false);
-			if (ob.has("PowerState")) {
-				vm.setCurrentState(provider.getComputeTranslations().toVmState(ob.getString("PowerState")));
-
-				if (VmState.RUNNING.equals(vm.getCurrentState())) {
-					vm.setPausable(true);
-					vm.setRebootable(true);
-				}
+			vm.setCurrentState(provider.getComputeTranslations().toVmState(ob));
+			System.out.println("CTS toVirtualMachine currentState: " + vm.getCurrentState());
+			if (VmState.RUNNING.equals(vm.getCurrentState())) {
+				vm.setPausable(true);
+				vm.setRebootable(true);
 			}
 			if (vm.getName() == null) {
 				vm.setName(vm.getProviderVirtualMachineId());
@@ -234,15 +240,36 @@ public class Tier3VM implements VirtualMachineSupport {
 				vm.setDescription(vm.getName());
 			}
 
-			String os = translateOS(ob.get("OperatingSystem"));
-			vm.setArchitecture(provider.getComputeTranslations().toArchitecture(os));
-			vm.setPlatform(Platform.guess(os));
+			if (ob.has("OperatingSystem")) {
+				String os = provider.getComputeTranslations().translateOS(ob.get("OperatingSystem"));
+				vm.setArchitecture(provider.getComputeTranslations().toArchitecture(os));
+				vm.setPlatform(Platform.guess(os));
+			}
 
-			if (ob.has("CustomFields") && !ob.isNull("CustomFields")) {
+			if (ob.has("CustomFields") && !ob.isNull("CustomFields") && ob.getJSONArray("CustomFields").length() > 0) {
 				JSONArray fields = ob.getJSONArray("CustomFields");
 				for (int i = 0; i < fields.length(); i++) {
 					JSONObject f = fields.getJSONObject(i);
 					vm.addTag(new Tag(f.getString("Name"), f.getString("Value")));
+				}
+			}
+			
+			// since vlan isn't handed back in get server, need to look it up and match on ip
+			Iterable<VLAN> vlans = provider.getNetworkServices().getVlanSupport().listVlans();
+			JSONArray ips = ob.getJSONArray("IPAddresses");
+			System.out.println("CTS toVirtualMachine ips: " + ips.toString());
+			for (VLAN vlan : vlans) {
+				for (int i = 0; i < ips.length(); i++) {
+					JSONObject ip = ips.getJSONObject(i);
+					String address = ip.getString("Address").substring(0, ip.getString("Address").lastIndexOf("."));
+					System.out.println("CTS toVirtualMachine address: " + address);
+					if (vlan.getName().contains(address)) {
+						vm.setProviderVlanId(vlan.getProviderVlanId());
+						break;
+					}
+				}
+				if (vm.getProviderVlanId() != null) {
+					break;
 				}
 			}
 
@@ -250,84 +277,6 @@ public class Tier3VM implements VirtualMachineSupport {
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		}
-	}
-
-	private ArrayList<OperatingSystem> getOperatingSystems(Architecture architecture) {
-		ArrayList<OperatingSystem> osList = new ArrayList<OperatingSystem>();
-		if (architecture == null || architecture == Architecture.I32) {
-			osList.add(new OperatingSystem(32, "CentOS 5 | 32-Bit", 8, 128));
-			osList.add(new OperatingSystem(34, "CentOS 6 | 32-Bit", 16, 128));
-			osList.add(new OperatingSystem(29, "Ubuntu 10 | 32-Bit", 16, 128));
-			osList.add(new OperatingSystem(2, "Windows 2003 32-bit", 4, 32));
-			osList.add(new OperatingSystem(15, "Windows 2003 R2 Enterprise | 32-bit", 8, 128));
-			osList.add(new OperatingSystem(15, "Windows 2003 R2 Standard | 32-bit", 4, 128));
-		}
-		if (architecture == null || architecture == Architecture.I64) {
-			osList.add(new OperatingSystem(33, "CentOS 5 | 64-Bit", 16, 128));
-			osList.add(new OperatingSystem(35, "CentOS 6 | 64-Bit", 16, 128));
-			osList.add(new OperatingSystem(36, "Debian 6 | 64-Bit", 16, 128));
-			osList.add(new OperatingSystem(37, "Debian 7 | 64-Bit", 16, 128));
-			osList.add(new OperatingSystem(25, "RedHat Enterprise Linux 5 | 64-bit", 16, 28));
-			osList.add(new OperatingSystem(30, "Ubuntu 10 | 64-Bit", 16, 128));
-			osList.add(new OperatingSystem(31, "Ubuntu 12 | 64-Bit", 16, 128));
-			osList.add(new OperatingSystem(15, "Windows 2003 R2 Enterprise | 64-bit", 8, 128));
-			osList.add(new OperatingSystem(15, "Windows 2003 R2 Standard | 64-bit", 4, 32));
-			osList.add(new OperatingSystem(26, "Windows 2008 Datacenter 64-bit", 4, 4));
-			osList.add(new OperatingSystem(18, "Windows 2008 Enterprise | 64-bit", 8, 128));
-			osList.add(new OperatingSystem(18, "Windows 2008 Standard | 64-bit", 4, 32));
-			osList.add(new OperatingSystem(27, "Windows 2012 Datacenter Edition | 64-bit", 16, 128));
-			osList.add(new OperatingSystem(28, "Windows 2012 R2 Datacenter Edition | 64-Bit", 16, 128));
-		}
-		// osList.add(new OperatingSystem(6, "CentOS 32-bit", ?, ?));
-		// osList.add(new OperatingSystem(7, "CentOS 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(21, "Debian 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(13, "FreeBSD 32-bit", ?, ?));
-		// osList.add(new OperatingSystem(14, "FreeBSD 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(?, "RedHat Enterprise Linux 6 64-bit",
-		// ?, ?));
-		// osList.add(new OperatingSystem(22, "RedHat Enterprise Linux 64-bit",
-		// ?, ?));
-		// osList.add(new OperatingSystem(38, "RedHat 6 64-Bit", ?, ?));
-		// osList.add(new OperatingSystem(?, "Small CentOS", ?, ?));
-		// osList.add(new OperatingSystem(?, "Stemcell | BOSH", ?, ?));
-		// osList.add(new OperatingSystem(?, "Stemcell | Micro-BOSH", ?, ?));
-		// osList.add(new OperatingSystem(19, "Ubuntu 32-bit", ?, ?));
-		// osList.add(new OperatingSystem(20, "Ubuntu 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(?, "Ubuntu 10 LAMP | 64-Bit", ?, ?));
-		// osList.add(new OperatingSystem(?, "Web Fabric Ubuntu x64 Template",
-		// 16, 128));
-		// osList.add(new OperatingSystem(?,
-		// "Web Fabric Ubuntu x64 Template V2", 16, 128));
-		// osList.add(new OperatingSystem(8, "Windows XP 32-bit", ?, ?));
-		// osList.add(new OperatingSystem(9, "Windows Vista 32-bit", ?, ?));
-		// osList.add(new OperatingSystem(10, "Windows Vista 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(11, "Windows 7 32-bit", ?, ?));
-		// osList.add(new OperatingSystem(12, "Windows 7 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(23, "Windows 8 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(3, "Windows 2003 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(4, "Windows 2008 32-bit", ?, ?));
-		// osList.add(new OperatingSystem(5, "Windows 2008 64-bit", ?, ?));
-		// osList.add(new OperatingSystem(15, "Windows 2003 Enterprise 32-bit",
-		// ?, ?));
-		// osList.add(new OperatingSystem(16, "Windows 2003 Enterprise 64-bit",
-		// ?, ?));
-		// osList.add(new OperatingSystem(17, "Windows 2008 Enterprise 32-bit",
-		// ?, ?));
-		// osList.add(new OperatingSystem(24, "Windows 2012 64-bit", ?, ?));
-
-		return osList;
-	}
-
-	private String translateOS(Object os) {
-		Integer osId = Integer.parseInt(os.toString());
-		if (osId != null) {
-			for (OperatingSystem o : getOperatingSystems(null)) {
-				if (osId == o.id) {
-					return o.name;
-				}
-			}
-		}
-		return null;
 	}
 
 	@Override
@@ -410,15 +359,21 @@ public class Tier3VM implements VirtualMachineSupport {
 	public VirtualMachine launch(VMLaunchOptions withLaunchOptions) throws CloudException, InternalException {
 		APITrace.begin(provider, "launch");
 		try {
+			ProviderContext ctx = provider.getContext();
+			if (ctx == null) {
+				throw new CloudException("No context was established for this request");
+			}
+			MachineImage template = provider.getComputeServices().getImageSupport()
+					.getImage(withLaunchOptions.getMachineImageId());
+
+			if (template == null) {
+				throw new InternalException("No such image: " + withLaunchOptions.getMachineImageId());
+			}
 			APIHandler method = new APIHandler(provider);
 			JSONObject post = new JSONObject();
 
 			post.put("AccountAlias", provider.getContext().getAccountNumber());
 			post.put("LocationAlias", withLaunchOptions.getDataCenterId());
-
-			MachineImage template = provider.getComputeServices().getImageSupport()
-					.getImage(withLaunchOptions.getMachineImageId());
-			System.out.println("CTS launch getImage template tags: " + template.getTags());
 			post.put("Template", template.getName());
 			int cpu = 1;
 			if (template.getTags().containsKey("Cpu") && !template.getTag("Cpu").equals("0")) {
@@ -454,7 +409,6 @@ public class Tier3VM implements VirtualMachineSupport {
 			} else {
 				post.put("ExtraDriveGB", 0);
 			}
-			System.out.println("launch options vlanId: " + withLaunchOptions.getVlanId());
 			post.put("Network", withLaunchOptions.getVlanId());
 
 			// TODO Dasein tests contain insufficiently strong passwords
@@ -482,30 +436,53 @@ public class Tier3VM implements VirtualMachineSupport {
 			}
 			System.out.println("CTS launch create server response : " + response.getJSON());
 
-			JSONObject json = new JSONObject();
-			if (json.has("Success") && !json.getBoolean("Success")) {
-				throw new CloudException(json.getString("Message"));
-			}
-			json.put("RequestId", response.getJSON().getInt("RequestID"));
-			response = method.post("Blueprint/GetDeploymentStatus/JSON", post.toString());
-
-			if (response == null) {
-				throw new CloudException("Could not retrieve server build request");
+			if (response.getJSON().has("Success") && !response.getJSON().getBoolean("Success")) {
+				throw new CloudException(response.getJSON().getString("Message"));
 			}
 
-			json = response.getJSON();
-			System.out.println("CTS launch get deployment status response : " + json);
-			if (json.has("Success") && !json.getBoolean("Success")) {
-				throw new CloudException(json.getString("Message"));
+			String vmId = null;
+			long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE*2);
+			int requestId = response.getJSON().getInt("RequestID");
+			while (timeout > System.currentTimeMillis()) {
+
+				// wait for CLC blueprints to at least hand back the server name
+				JSONObject deployStatus = provider.getDeploymentStatus(requestId);
+				JSONArray servers = deployStatus.getJSONArray("Servers");
+				if (deployStatus.has("Servers") && !deployStatus.isNull("Servers") && servers.length() > 0) {
+					vmId = servers.get(0).toString();
+					break;
+				} else {
+					System.out.println("CTS sleeping");
+					try {
+						Thread.sleep(10000L);
+					} catch (InterruptedException ignore) {
+					}
+				}
+			}
+			
+			System.out.println("CTS server id: " + vmId);
+
+			// now wait for CLC to recognize the server exists
+			VirtualMachine vm = getVirtualMachine(vmId);
+			if (vm == null || (vm.getName() == null)) {
+				timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE * 2);
+
+				while (timeout > System.currentTimeMillis()) {
+					try {
+						System.out.println("CTS: sleeping for name");
+						Thread.sleep(10000L);
+					} catch (InterruptedException ignore) {
+					}
+					try {
+						vm = getVirtualMachine(vmId);
+					} catch (Throwable ignore) {
+					}
+					if (vm != null && vm.getName() != null) {
+						break;
+					}
+				}
 			}
 
-			VirtualMachine vm = new VirtualMachine();
-			vm.addTag(new Tag("RequestID", json.getString("RequestID")));
-			if (json.has("Servers") && json.get("Servers") != null) {
-				@SuppressWarnings("unchecked")
-				List<String> servers = (List<String>) json.get("Servers");
-				vm.setName(servers.get(0));
-			}
 			return vm;
 
 		} catch (JSONException e) {
@@ -574,7 +551,7 @@ public class Tier3VM implements VirtualMachineSupport {
 
 		ArrayList<VirtualMachineProduct> products = new ArrayList<VirtualMachineProduct>();
 
-		for (OperatingSystem os : getOperatingSystems(architecture)) {
+		for (Tier3OS os : provider.getComputeTranslations().getOperatingSystems(architecture)) {
 			for (int cpu = 1; cpu <= os.maxCpu; cpu++) {
 
 				// for lower numbers, increment by 1
@@ -585,7 +562,7 @@ public class Tier3VM implements VirtualMachineSupport {
 					product.setCpuCount(cpu);
 					product.setDescription(product.getName());
 					product.setProviderProductId(product.getName());
-					product.setRootVolumeSize(new Storage<Gigabyte>(0, Storage.GIGABYTE));
+					product.setRootVolumeSize(new Storage<Gigabyte>(1, Storage.GIGABYTE));
 					product.setStandardHourlyRate(0.0f);
 					products.add(product);
 				}
@@ -598,7 +575,7 @@ public class Tier3VM implements VirtualMachineSupport {
 					product.setCpuCount(cpu);
 					product.setDescription(product.getName());
 					product.setProviderProductId(product.getName());
-					product.setRootVolumeSize(new Storage<Gigabyte>(0, Storage.GIGABYTE));
+					product.setRootVolumeSize(new Storage<Gigabyte>(1, Storage.GIGABYTE));
 					product.setStandardHourlyRate(0.0f);
 					products.add(product);
 				}
@@ -736,10 +713,14 @@ public class Tier3VM implements VirtualMachineSupport {
 			APIHandler method = new APIHandler(provider);
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
+			APIResponse apiResponse = null;
 			if (force) {
-				method.post("Server/ResetServer/JSON", json.toString());
+				apiResponse = method.post("Server/PowerOffServer/JSON", json.toString());
 			} else {
-				method.post("Server/ShutdownServer/JSON", json.toString());
+				apiResponse = method.post("Server/ShutdownServer/JSON", json.toString());
+			}
+			if (apiResponse != null) {
+				apiResponse.validate();
 			}
 		} catch (JSONException e) {
 			throw new CloudException(e);
@@ -811,20 +792,6 @@ public class Tier3VM implements VirtualMachineSupport {
 	@Override
 	public void removeTags(String[] vmIds, Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException();
-	}
-
-	private class OperatingSystem {
-		int id;
-		String name;
-		int maxCpu;
-		int maxMemory;
-
-		public OperatingSystem(int id, String name, int maxCpu, int maxMemory) {
-			this.id = id;
-			this.name = name;
-			this.maxCpu = maxCpu;
-			this.maxMemory = maxMemory;
-		}
 	}
 
 	public int getDefaultHardwareGroupId(String dataCenterId) throws CloudException, InternalException {
