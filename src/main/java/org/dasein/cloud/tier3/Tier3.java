@@ -19,6 +19,8 @@
 
 package org.dasein.cloud.tier3;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Properties;
 
 import javax.annotation.Nonnull;
@@ -26,6 +28,8 @@ import javax.annotation.Nullable;
 
 import org.apache.log4j.Logger;
 import org.dasein.cloud.AbstractCloud;
+import org.dasein.cloud.CloudException;
+import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.ComputeServices;
 import org.dasein.cloud.network.NetworkServices;
@@ -33,6 +37,7 @@ import org.dasein.cloud.tier3.compute.Tier3ComputeServices;
 import org.dasein.cloud.tier3.compute.Tier3ComputeTranslations;
 import org.dasein.cloud.tier3.network.Tier3NetworkServices;
 import org.dasein.cloud.tier3.network.Tier3NetworkTranslations;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 /**
@@ -91,7 +96,7 @@ public class Tier3 extends AbstractCloud {
 	DataCenters getDataCenterServices() {
 		return new DataCenters(this);
 	}
-	
+
 	@Override
 	public @Nonnull
 	String getProviderName() {
@@ -105,7 +110,7 @@ public class Tier3 extends AbstractCloud {
 	public ComputeServices getComputeServices() {
 		return new Tier3ComputeServices(this);
 	}
-	
+
 	public Tier3ComputeTranslations getComputeTranslations() {
 		return new Tier3ComputeTranslations();
 	}
@@ -114,7 +119,7 @@ public class Tier3 extends AbstractCloud {
 	public NetworkServices getNetworkServices() {
 		return new Tier3NetworkServices(this);
 	}
-	
+
 	public Tier3NetworkTranslations getNetworkTranslations() {
 		return new Tier3NetworkTranslations();
 	}
@@ -139,10 +144,10 @@ public class Tier3 extends AbstractCloud {
 			try {
 				JSONObject json = new JSONObject();
 				json.put("AccountAlias", ctx.getAccountNumber());
-				APIResponse response = new APIHandler(this).post("Account/GetAccountDetails/JSON",
-						json.toString());
+				APIResponse response = new APIHandler(this).post("Account/GetAccountDetails/JSON", json.toString());
 				if (response != null) {
-					if (response.getJSON().getBoolean("Success") && response.getJSON().getString("AccountDetails") != null) {
+					if (response.getJSON().getBoolean("Success")
+							&& response.getJSON().getString("AccountDetails") != null) {
 						return response.getJSON().getJSONObject("AccountDetails").getString("AccountAlias");
 					}
 				}
@@ -160,7 +165,7 @@ public class Tier3 extends AbstractCloud {
 	}
 
 	@Nonnull
-	public void logon() {
+	public void logon() throws CloudException, InternalException {
 		if (logger.isTraceEnabled()) {
 			logger.trace("ENTER - " + Tier3.class.getName() + ".logon()");
 		}
@@ -168,23 +173,87 @@ public class Tier3 extends AbstractCloud {
 			ProviderContext ctx = this.getContext();
 			connect(ctx);
 
-			try {
-				Properties customProps = ctx.getCustomProperties();
+			Properties customProps = ctx.getCustomProperties();
 
-				JSONObject json = new JSONObject();
-				json.put("APIKey", customProps.getProperty("APIKey"));
-				json.put("Password", customProps.getProperty("Password"));
-				new APIHandler(this).post("Auth/Logon/", json.toString());
+			JSONObject json = new JSONObject();
+			json.put("APIKey", customProps.getProperty("APIKey"));
+			json.put("Password", customProps.getProperty("Password"));
+			new APIHandler(this).post("Auth/Logon/", json.toString());
 
-			} catch (Throwable t) {
-				logger.error("Error querying API key: " + t.getMessage());
-				t.printStackTrace();
-			}
+		} catch (JSONException e) {
+			throw new CloudException(e);
 
 		} finally {
 			if (logger.isTraceEnabled()) {
 				logger.trace("EXIT - " + Tier3.class.getName() + ".logon()");
 			}
 		}
+	}
+
+	public JSONObject getDeploymentStatus(int requestId) throws CloudException, InternalException {
+		if (logger.isTraceEnabled()) {
+			logger.trace("ENTER - " + Tier3.class.getName() + ".getDeploymentStatus()");
+		}
+		try {
+
+			APIHandler method = new APIHandler(this);
+			JSONObject post = new JSONObject();
+			post.put("RequestId", requestId);
+			APIResponse response = method.post("Blueprint/GetDeploymentStatus/JSON", post.toString());
+
+			if (response == null) {
+				throw new CloudException("Could not retrieve server build request");
+			}
+
+			JSONObject json = response.getJSON();
+			System.out.println("CTS get deployment status response : " + json);
+			if (json.has("Success") && !json.getBoolean("Success")) {
+				throw new CloudException(json.getString("Message"));
+			}
+
+			return json;
+
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			if (logger.isTraceEnabled()) {
+				logger.trace("EXIT - " + Tier3.class.getName() + ".getDeploymentStatus()");
+			}
+		}
+	}
+
+	public long parseTimestamp(String time) throws CloudException {
+		if (time == null) {
+			return 0L;
+		}
+		SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
+		if (time.length() > 0) {
+			try {
+				return fmt.parse(time).getTime();
+			} catch (ParseException e) {
+				fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+				try {
+					return fmt.parse(time).getTime();
+				} catch (ParseException encore) {
+					fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+					try {
+						return fmt.parse(time).getTime();
+					} catch (ParseException again) {
+						try {
+							return fmt.parse(time).getTime();
+						} catch (ParseException whynot) {
+							fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+							try {
+								return fmt.parse(time).getTime();
+							} catch (ParseException because) {
+								throw new CloudException("Could not parse date: " + time);
+							}
+						}
+					}
+				}
+			}
+		}
+		return 0L;
 	}
 }
