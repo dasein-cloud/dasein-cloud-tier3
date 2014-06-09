@@ -21,10 +21,12 @@ package org.dasein.cloud.tier3;
 
 import org.dasein.cloud.CloudException;
 import org.dasein.util.CalendarWrapper;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
 import java.io.InputStream;
 
 /**
@@ -34,131 +36,158 @@ import java.io.InputStream;
  * @since 2013.01
  */
 public class APIResponse {
-    private int code;
-    private JSONObject json;
-    private InputStream data;
-    private Boolean complete;
+	private int code;
+	private JSONObject json;
+	private InputStream data;
+	private Boolean complete;
 
-    private CloudException error;
-    private APIResponse next;
-    
-    public APIResponse() { }
+	private CloudException error;
+	private APIResponse next;
 
-    public int getCode() throws CloudException {
-        synchronized( this ) {
-            while( complete == null && error == null ) {
-                try { wait(CalendarWrapper.MINUTE); }
-                catch( InterruptedException ignore ) { }
-            }
-            if( error != null ) {
-                throw error;
-            }
-            return code;
-        }
-    }
+	public APIResponse() {
+	}
 
-    public InputStream getData() throws CloudException {
-        synchronized( this ) {
-            while( complete == null && error == null ) {
-                try { wait(CalendarWrapper.MINUTE); }
-                catch( InterruptedException ignore ) { }
-            }
-            if( error != null ) {
-                throw error;
-            }
-            return data;
-        }
-    }
+	public int getCode() throws CloudException {
+		synchronized (this) {
+			while (complete == null && error == null) {
+				try {
+					wait(CalendarWrapper.MINUTE);
+				} catch (InterruptedException ignore) {
+				}
+			}
+			if (error != null) {
+				throw error;
+			}
+			return code;
+		}
+	}
 
-    public JSONObject getJSON() throws CloudException {
-        synchronized( this ) {
-            while( complete == null && error ==null ) {
-                try { wait(CalendarWrapper.MINUTE); }
-                catch( InterruptedException ignore ) { }
-            }
-            if( error != null ) {
-                throw error;
-            }
-            return json;
-        }
-    }
+	public InputStream getData() throws CloudException {
+		synchronized (this) {
+			while (complete == null && error == null) {
+				try {
+					wait(CalendarWrapper.MINUTE);
+				} catch (InterruptedException ignore) {
+				}
+			}
+			if (error != null) {
+				throw error;
+			}
+			return data;
+		}
+	}
 
-    public boolean isComplete() throws CloudException {
-        synchronized( this ) {
-            while( complete == null && error == null ) {
-                try { wait(CalendarWrapper.MINUTE); }
-                catch( InterruptedException ignore ) { }
-            }
-            if( error != null ) {
-                throw error;
-            }
-            return complete;
-        }
-    }
+	public JSONObject getJSON() throws CloudException {
+		synchronized (this) {
+			while (complete == null && error == null) {
+				try {
+					wait(CalendarWrapper.MINUTE);
+				} catch (InterruptedException ignore) {
+				}
+			}
+			if (error != null) {
+				throw error;
+			}
+			return json;
+		}
+	}
 
-    public @Nullable APIResponse next() throws CloudException {
-        synchronized( this ) {
-            while( complete == null && error == null ) {
-                try { wait(CalendarWrapper.MINUTE); }
-                catch( InterruptedException ignore ) { }
-            }
-            if( error != null ) {
-                throw error;
-            }
-            if( complete ) {
-                return null;
-            }
-            while( next == null && error == null ) {
-                try { wait(CalendarWrapper.MINUTE); }
-                catch( InterruptedException ignore ) { }
-            }
-            if( error != null ) {
-                throw error;
-            }
-            return next;
-        }
-    }
+	public boolean isComplete() throws CloudException {
+		synchronized (this) {
+			while (complete == null && error == null) {
+				try {
+					wait(CalendarWrapper.MINUTE);
+				} catch (InterruptedException ignore) {
+				}
+			}
+			if (error != null) {
+				throw error;
+			}
+			return complete;
+		}
+	}
 
-    void receive() {
-        synchronized( this ) {
-            this.code = APIHandler.NOT_FOUND;
-            this.complete = true;
-            notifyAll();
-        }
-    }
+	public @Nullable
+	APIResponse next() throws CloudException {
+		synchronized (this) {
+			while (complete == null && error == null) {
+				try {
+					wait(CalendarWrapper.MINUTE);
+				} catch (InterruptedException ignore) {
+				}
+			}
+			if (error != null) {
+				throw error;
+			}
+			if (complete) {
+				return null;
+			}
+			while (next == null && error == null) {
+				try {
+					wait(CalendarWrapper.MINUTE);
+				} catch (InterruptedException ignore) {
+				}
+			}
+			if (error != null) {
+				throw error;
+			}
+			return next;
+		}
+	}
 
-    void receive(CloudException error) {
-        synchronized( this ) {
-            this.code = error.getHttpCode();
-            this.error = error;
-            this.complete = true;
-            notifyAll();
-        }
-    }
+	void receive() {
+		synchronized (this) {
+			this.code = APIHandler.NOT_FOUND;
+			this.complete = true;
+			notifyAll();
+		}
+	}
 
-    void receive(int statusCode, @Nonnull InputStream data) {
-        synchronized( this ) {
-            this.code = statusCode;
-            this.data = data;
-            this.complete = true;
-            notifyAll();
-        }
-    }
+	void receive(CloudException error) {
+		synchronized (this) {
+			this.code = error.getHttpCode();
+			this.error = error;
+			this.complete = true;
+			notifyAll();
+		}
+	}
 
-    void receive(int statusCode, @Nonnull JSONObject json, boolean complete) {
-        synchronized( this ) {
-            this.code = statusCode;
-            this.json = json;
-            this.complete = complete;
-            notifyAll();
-        }
-    }
+	void receive(int statusCode, @Nonnull InputStream data) {
+		synchronized (this) {
+			this.code = statusCode;
+			this.data = data;
+			this.complete = true;
+			notifyAll();
+		}
+	}
 
-    void setNext(APIResponse next) {
-        synchronized( this ) {
-            this.next = next;
-            notifyAll();
-        }
-    }
+	void receive(int statusCode, @Nonnull JSONObject json, boolean complete) {
+		synchronized (this) {
+			this.code = statusCode;
+			this.json = json;
+			this.complete = complete;
+			notifyAll();
+		}
+	}
 
+	void setNext(APIResponse next) {
+		synchronized (this) {
+			this.next = next;
+			notifyAll();
+		}
+	}
+
+	/**
+	 * Cloud specific method to test standard values in a JSON response payload.
+	 * @throws CloudException
+	 * @throws JSONException
+	 */
+	public void validate() throws CloudException, JSONException {
+		synchronized (this) {
+			if (this.json.has("Success") && !this.json.getBoolean("Success")) {
+				throw new CloudException(this.json.getString("Message"));
+			}
+			notifyAll();
+		}
+	}
 }
