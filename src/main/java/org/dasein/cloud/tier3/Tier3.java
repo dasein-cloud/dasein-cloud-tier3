@@ -206,7 +206,6 @@ public class Tier3 extends AbstractCloud {
 			}
 
 			JSONObject json = response.getJSON();
-			System.out.println("CTS get deployment status response : " + json);
 			if (json.has("Success") && !json.getBoolean("Success")) {
 				throw new CloudException(json.getString("Message"));
 			}
