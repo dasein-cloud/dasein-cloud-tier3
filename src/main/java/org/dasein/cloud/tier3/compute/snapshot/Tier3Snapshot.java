@@ -66,11 +66,10 @@ public class Tier3Snapshot implements SnapshotSupport {
 			JSONObject post = new JSONObject();
 			post.put("Name", options.getVolumeId());
 			APIResponse response = method.post("Server/SnapshotServer/JSON", post.toString());
-
-			JSONObject json = response.getJSON();
-			if ((json.has("Success") && !json.getBoolean("Success")) || !json.has("Server")) {
-				logger.warn(json.getString("Message"));
-				return null;
+			if (response == null) {
+				throw new CloudException("No snapshot was taken");
+			} else {
+				response.validate();
 			}
 
 			// TODO watch the deployment status response to see what we can

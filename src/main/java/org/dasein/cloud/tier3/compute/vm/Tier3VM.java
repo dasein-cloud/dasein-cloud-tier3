@@ -77,14 +77,8 @@ public class Tier3VM implements VirtualMachineSupport {
 
 			if (response == null) {
 				throw new CloudException("No server was altered");
-			}
-
-			JSONObject json = new JSONObject();
-			json.put("RequestId", response.getJSON().getInt("RequestID"));
-			response = method.post("Blueprint/GetDeploymentStatus/JSON", new JSONObject(post).toString());
-
-			if (response == null) {
-				throw new CloudException("Could not retrieve server configure request");
+			} else {
+				response.validate();
 			}
 
 			return vm;
@@ -159,11 +153,10 @@ public class Tier3VM implements VirtualMachineSupport {
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
 			APIResponse response = method.post("Server/GetServer/JSON", json.toString());
-
-			json = response.getJSON();
-			if ((json.has("Success") && !json.getBoolean("Success")) || !json.has("Server")) {
-				logger.warn(json.getString("Message"));
-				return null;
+			if (response == null) {
+				throw new CloudException("Invalid vmId");
+			} else {
+				response.validate();
 			}
 			return toVirtualMachine(json.getJSONObject("Server"));
 		} catch (JSONException e) {
@@ -423,13 +416,10 @@ public class Tier3VM implements VirtualMachineSupport {
 				post.put("CustomFields", customFields);
 			}
 			APIResponse response = method.post("Server/CreateServer/JSON", post.toString());
-
 			if (response == null) {
 				throw new CloudException("No server was created");
-			}
-
-			if (response.getJSON().has("Success") && !response.getJSON().getBoolean("Success")) {
-				throw new CloudException(response.getJSON().getString("Message"));
+			} else {
+				response.validate();
 			}
 
 			String vmId = null;

@@ -217,14 +217,11 @@ public class Tier3VlanSupport implements VLANSupport {
 
 			if (response == null) {
 				throw new CloudException("Invalid vlan");
+			} else {
+				response.validate();
 			}
-			JSONObject json = response.getJSON();
-			if (!json.getBoolean("Success")) {
-				logger.warn(json.getString("Message"));
-				return null;
-			}
-			if (json.has("NetworkDetails")) {
-				return toVlan(json.getJSONObject("NetworkDetails"));
+			if (response.getJSON().has("NetworkDetails")) {
+				return toVlan(response.getJSON().getJSONObject("NetworkDetails"));
 			}
 
 			return null;
@@ -304,19 +301,15 @@ public class Tier3VlanSupport implements VLANSupport {
 			JSONObject post = new JSONObject();
 			post.put("Name", vlanId);
 			APIResponse response = method.post("Network/GetNetworkDetails/JSON", post.toString());
-
 			if (response == null) {
 				throw new CloudException("Invalid vlan");
-			}
-			JSONObject json = response.getJSON();
-			if (!json.getBoolean("Success")) {
-				throw new CloudException(json.getString("Message"));
+			} else {
+				response.validate();
 			}
 			
 			ArrayList<NetworkInterface> networks = new ArrayList<NetworkInterface>();
-
-			if (json.has("NetworkDetails")) {
-				networks.add(toNetwork(json.getJSONObject("NetworkDetails")));
+			if (response.getJSON().has("NetworkDetails")) {
+				networks.add(toNetwork(response.getJSON().getJSONObject("NetworkDetails")));
 			}
 
 			return networks;
