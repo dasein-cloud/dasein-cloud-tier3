@@ -152,7 +152,6 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public VirtualMachine getVirtualMachine(String vmId) throws InternalException, CloudException {
-		System.out.println("CTS getVirtualMachine input: " + vmId);
 		APITrace.begin(provider, "getVirtualMachine");
 		APIHandler method = new APIHandler(provider);
 
@@ -166,7 +165,6 @@ public class Tier3VM implements VirtualMachineSupport {
 				logger.warn(json.getString("Message"));
 				return null;
 			}
-			System.out.println("CTS getVirtualMachine toVirtualMachine input: " + json.toString());
 			return toVirtualMachine(json.getJSONObject("Server"));
 		} catch (JSONException e) {
 			throw new CloudException(e);
@@ -179,7 +177,6 @@ public class Tier3VM implements VirtualMachineSupport {
 		if (ob == null) {
 			return null;
 		}
-		System.out.println("CTS toVirtualMachine input: " + ob.toString());
 		try {
 			VirtualMachine vm = new VirtualMachine();
 
@@ -228,7 +225,6 @@ public class Tier3VM implements VirtualMachineSupport {
 			vm.setPausable(false);
 			vm.setRebootable(false);
 			vm.setCurrentState(provider.getComputeTranslations().toVmState(ob));
-			System.out.println("CTS toVirtualMachine currentState: " + vm.getCurrentState());
 			if (VmState.RUNNING.equals(vm.getCurrentState())) {
 				vm.setPausable(true);
 				vm.setRebootable(true);
@@ -257,12 +253,10 @@ public class Tier3VM implements VirtualMachineSupport {
 			// since vlan isn't handed back in get server, need to look it up and match on ip
 			Iterable<VLAN> vlans = provider.getNetworkServices().getVlanSupport().listVlans();
 			JSONArray ips = ob.getJSONArray("IPAddresses");
-			System.out.println("CTS toVirtualMachine ips: " + ips.toString());
 			for (VLAN vlan : vlans) {
 				for (int i = 0; i < ips.length(); i++) {
 					JSONObject ip = ips.getJSONObject(i);
 					String address = ip.getString("Address").substring(0, ip.getString("Address").lastIndexOf("."));
-					System.out.println("CTS toVirtualMachine address: " + address);
 					if (vlan.getName().contains(address)) {
 						vm.setProviderVlanId(vlan.getProviderVlanId());
 						break;
@@ -428,13 +422,11 @@ public class Tier3VM implements VirtualMachineSupport {
 				}
 				post.put("CustomFields", customFields);
 			}
-			System.out.println("CTS launch create server request: " + post.toString());
 			APIResponse response = method.post("Server/CreateServer/JSON", post.toString());
 
 			if (response == null) {
 				throw new CloudException("No server was created");
 			}
-			System.out.println("CTS launch create server response : " + response.getJSON());
 
 			if (response.getJSON().has("Success") && !response.getJSON().getBoolean("Success")) {
 				throw new CloudException(response.getJSON().getString("Message"));
@@ -452,7 +444,6 @@ public class Tier3VM implements VirtualMachineSupport {
 					vmId = servers.get(0).toString();
 					break;
 				} else {
-					System.out.println("CTS sleeping");
 					try {
 						Thread.sleep(10000L);
 					} catch (InterruptedException ignore) {
@@ -460,8 +451,6 @@ public class Tier3VM implements VirtualMachineSupport {
 				}
 			}
 			
-			System.out.println("CTS server id: " + vmId);
-
 			// now wait for CLC to recognize the server exists
 			VirtualMachine vm = getVirtualMachine(vmId);
 			if (vm == null || (vm.getName() == null)) {
@@ -469,7 +458,6 @@ public class Tier3VM implements VirtualMachineSupport {
 
 				while (timeout > System.currentTimeMillis()) {
 					try {
-						System.out.println("CTS: sleeping for name");
 						Thread.sleep(10000L);
 					} catch (InterruptedException ignore) {
 					}
