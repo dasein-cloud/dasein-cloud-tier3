@@ -76,15 +76,30 @@ public class Tier3ComputeTranslations {
 	 */
 	public @Nonnull
 	VmState toVmState(@Nonnull JSONObject jsonObject) throws JSONException {
-		if (jsonObject == null || !jsonObject.has("PowerState")) {
+		if (jsonObject == null || !jsonObject.has("PowerState") || !jsonObject.has("Status")) {
 			return VmState.PENDING;
 		}
-		if ("Started".equals(jsonObject.getString("PowerState"))) {
-			return VmState.RUNNING;
-		} else if ("Stopped".equals(jsonObject.getString("PowerState"))) {
-			return VmState.STOPPED;
-		} else if ("Paused".equals(jsonObject.getString("PowerState"))) {
-			return VmState.PAUSED;
+		String status = jsonObject.getString("Status");
+		String powerState = jsonObject.getString("PowerState");
+		
+		if ("Active".equals(status)) {
+			if ("Started".equals(powerState)) {
+				return VmState.RUNNING;
+			} else if ("Stopped".equals(powerState)) {
+				return VmState.STOPPED;
+			} else if ("Paused".equals(powerState)) {
+				return VmState.PAUSED;
+			} else {
+				return VmState.PENDING;
+			}
+		} else if ("Deleted".equals(status)) {
+			return VmState.TERMINATED;
+		} else if (status.startsWith("Queued")) {
+			return VmState.PENDING;
+		} else if ("Archived".equals(status)) {
+			return VmState.SUSPENDED;
+		} else if ("UnderConstruction".equals(status)) {
+			return VmState.PENDING;
 		} else {
 			return VmState.PENDING;
 		}
