@@ -214,12 +214,8 @@ public class Tier3VlanSupport implements VLANSupport {
 			JSONObject post = new JSONObject();
 			post.put("Name", vlanId);
 			APIResponse response = method.post("Network/GetNetworkDetails/JSON", post.toString());
+			response.validate();
 
-			if (response == null) {
-				throw new CloudException("Invalid vlan");
-			} else {
-				response.validate();
-			}
 			if (response.getJSON().has("NetworkDetails")) {
 				return toVlan(response.getJSON().getJSONObject("NetworkDetails"));
 			}
@@ -301,11 +297,7 @@ public class Tier3VlanSupport implements VLANSupport {
 			JSONObject post = new JSONObject();
 			post.put("Name", vlanId);
 			APIResponse response = method.post("Network/GetNetworkDetails/JSON", post.toString());
-			if (response == null) {
-				throw new CloudException("Invalid vlan");
-			} else {
-				response.validate();
-			}
+			response.validate();
 			
 			ArrayList<NetworkInterface> networks = new ArrayList<NetworkInterface>();
 			if (response.getJSON().has("NetworkDetails")) {
@@ -346,7 +338,8 @@ public class Tier3VlanSupport implements VLANSupport {
 		try {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Network/GetNetworks/JSON", "");
-
+			response.validate();
+			
 			ArrayList<ResourceStatus> vlans = new ArrayList<ResourceStatus>();
 
 			JSONObject json = response.getJSON();
@@ -374,7 +367,8 @@ public class Tier3VlanSupport implements VLANSupport {
 		try {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Network/GetNetworks/JSON", "");
-
+			response.validate();
+			
 			ArrayList<VLAN> vlans = new ArrayList<VLAN>();
 
 			JSONObject json = response.getJSON();
@@ -384,7 +378,8 @@ public class Tier3VlanSupport implements VLANSupport {
 					JSONObject post = new JSONObject();
 					post.put("Name", json.getJSONArray("Networks").getJSONObject(i).getString("Name"));
 					APIResponse detailResponse = method.post("Network/GetNetworkDetails/JSON", post.toString());
-
+					detailResponse.validate();
+					
 					JSONObject detailJson = detailResponse.getJSON();
 					if (!detailJson.getBoolean("Success")) {
 						throw new CloudException(detailJson.getString("Message"));

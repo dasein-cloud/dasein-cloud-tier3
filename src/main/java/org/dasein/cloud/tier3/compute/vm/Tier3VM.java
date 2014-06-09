@@ -74,12 +74,7 @@ public class Tier3VM implements VirtualMachineSupport {
 			post.put("MemoryGB", product.getRamSize());
 
 			APIResponse response = method.post("Server/ConfigureServer/JSON", new JSONObject(post).toString());
-
-			if (response == null) {
-				throw new CloudException("No server was altered");
-			} else {
-				response.validate();
-			}
+			response.validate();
 
 			return vm;
 
@@ -153,12 +148,9 @@ public class Tier3VM implements VirtualMachineSupport {
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
 			APIResponse response = method.post("Server/GetServer/JSON", json.toString());
-			if (response == null) {
-				throw new CloudException("Invalid vmId");
-			} else {
-				response.validate();
-			}
-			return toVirtualMachine(json.getJSONObject("Server"));
+			response.validate();
+
+			return toVirtualMachine(response.getJSON().getJSONObject("Server"));
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -416,11 +408,7 @@ public class Tier3VM implements VirtualMachineSupport {
 				post.put("CustomFields", customFields);
 			}
 			APIResponse response = method.post("Server/CreateServer/JSON", post.toString());
-			if (response == null) {
-				throw new CloudException("No server was created");
-			} else {
-				response.validate();
-			}
+			response.validate();
 
 			String vmId = null;
 			long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE*2);
@@ -574,7 +562,8 @@ public class Tier3VM implements VirtualMachineSupport {
 		try {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Server/GetAllServers/JSON", "");
-
+			response.validate();
+			
 			ArrayList<ResourceStatus> vms = new ArrayList<ResourceStatus>();
 
 			JSONObject json = response.getJSON();
@@ -602,7 +591,8 @@ public class Tier3VM implements VirtualMachineSupport {
 		try {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Server/GetAllServers/JSON", "");
-
+			response.validate();
+			
 			ArrayList<VirtualMachine> vms = new ArrayList<VirtualMachine>();
 
 			JSONObject json = response.getJSON();
@@ -636,7 +626,8 @@ public class Tier3VM implements VirtualMachineSupport {
 			APIHandler method = new APIHandler(provider);
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
-			method.post("Server/PauseServer/JSON", json.toString());
+			APIResponse response = method.post("Server/PauseServer/JSON", json.toString());
+			response.validate();
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -651,7 +642,8 @@ public class Tier3VM implements VirtualMachineSupport {
 			APIHandler method = new APIHandler(provider);
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
-			method.post("Server/RebootServer/JSON", json.toString());
+			APIResponse response = method.post("Server/RebootServer/JSON", json.toString());
+			response.validate();
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -671,7 +663,8 @@ public class Tier3VM implements VirtualMachineSupport {
 			APIHandler method = new APIHandler(provider);
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
-			method.post("Server/PowerOnServer/JSON", json.toString());
+			APIResponse response = method.post("Server/PowerOnServer/JSON", json.toString());
+			response.validate();
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -697,9 +690,7 @@ public class Tier3VM implements VirtualMachineSupport {
 			} else {
 				apiResponse = method.post("Server/ShutdownServer/JSON", json.toString());
 			}
-			if (apiResponse != null) {
-				apiResponse.validate();
-			}
+			apiResponse.validate();
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -739,7 +730,8 @@ public class Tier3VM implements VirtualMachineSupport {
 			APIHandler method = new APIHandler(provider);
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
-			method.post("Server/DeleteServer/JSON", json.toString());
+			APIResponse response = method.post("Server/DeleteServer/JSON", json.toString());
+			response.validate();
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {
@@ -780,13 +772,10 @@ public class Tier3VM implements VirtualMachineSupport {
 			JSONObject json = new JSONObject();
 			json.put("Location", dataCenterId);
 			APIResponse response = method.post("Group/GetGroups/JSON", json.toString());
-
+			response.validate();
+			
 			json = response.getJSON();
-			if (json == null) {
-				throw new CloudException("Unable to find any hardware groups");
-			}
-
-			if (json.has("HardwareGroups") && json.get("HardwareGroups") != null) {
+			if (json != null && json.has("HardwareGroups") && json.getJSONArray("HardwareGroups").length() > 0) {
 				for (int i = 0; i < json.getJSONArray("HardwareGroups").length(); i++) {
 					JSONObject group = json.getJSONArray("HardwareGroups").getJSONObject(i);
 					if (group != null && group.getString("Name").equals("Default Group")) {

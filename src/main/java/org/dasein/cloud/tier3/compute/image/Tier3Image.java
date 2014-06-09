@@ -78,10 +78,7 @@ public class Tier3Image implements MachineImageSupport {
 			post.put("Password", options.getMetaData().get("Password"));
 			post.put("TemplateAlias", options.getName());
 			APIResponse response = method.post("Server/ConvertServerToTemplate/JSON", post.toString());
-
-			if (response == null) {
-				throw new CloudException("No server was created");
-			}
+			response.validate();
 
 			JSONObject deployStatus = provider.getDeploymentStatus(response.getJSON().getInt("RequestID"));
 			MachineImage image = toMachineImage(deployStatus);
@@ -176,7 +173,8 @@ public class Tier3Image implements MachineImageSupport {
 		try {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Server/GetServerTemplates/JSON", "");
-
+			response.validate();
+			
 			ArrayList<ResourceStatus> resources = new ArrayList<ResourceStatus>();
 
 			JSONObject json = response.getJSON();
@@ -201,7 +199,8 @@ public class Tier3Image implements MachineImageSupport {
 		try {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Server/GetServerTemplates/JSON", "");
-
+			response.validate();
+			
 			ArrayList<MachineImage> images = new ArrayList<MachineImage>();
 
 			JSONObject json = response.getJSON();
@@ -320,7 +319,9 @@ public class Tier3Image implements MachineImageSupport {
 			APIHandler method = new APIHandler(provider);
 			JSONObject post = new JSONObject();
 			post.put("Name", image.getName());
-			method.post("Server/DeleteTemplate/JSON", post.toString());
+			APIResponse response = method.post("Server/DeleteTemplate/JSON", post.toString());
+			response.validate();
+			
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		} finally {

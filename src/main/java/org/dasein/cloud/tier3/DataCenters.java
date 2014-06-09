@@ -120,7 +120,8 @@ public class DataCenters implements DataCenterServices {
 
 				APIHandler method = new APIHandler(provider);
 				APIResponse response = method.post("Account/GetLocations/JSON", "");
-
+				response.validate();
+				
 				JSONObject json = response.getJSON();
 				if (json.has("Locations")) {
 					for (int i = 0; i < json.getJSONArray("Locations").length(); i++) {
@@ -165,7 +166,8 @@ public class DataCenters implements DataCenterServices {
 
 				APIHandler method = new APIHandler(provider);
 				APIResponse response = method.post("Account/GetLocations/JSON", "");
-
+				response.validate();
+				
 				JSONObject json = response.getJSON();
 				if (json.has("Locations")) {
 					for (int i = 0; i < json.getJSONArray("Locations").length(); i++) {
