@@ -58,8 +58,8 @@ public class Tier3ComputeServices extends AbstractComputeServices {
 		return false;
 	}
 
-	@Override
-	public SnapshotSupport getSnapshotSupport() {
-		return new Tier3Snapshot(provider);
-	}
+//	@Override
+//	public SnapshotSupport getSnapshotSupport() {
+//		return new Tier3Snapshot(provider);
+//	}
 }
