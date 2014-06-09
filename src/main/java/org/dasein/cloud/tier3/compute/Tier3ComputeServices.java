@@ -4,9 +4,11 @@ import javax.annotation.Nonnull;
 
 import org.dasein.cloud.compute.AbstractComputeServices;
 import org.dasein.cloud.compute.MachineImageSupport;
+import org.dasein.cloud.compute.SnapshotSupport;
 import org.dasein.cloud.compute.VirtualMachineSupport;
 import org.dasein.cloud.tier3.Tier3;
 import org.dasein.cloud.tier3.compute.image.Tier3Image;
+import org.dasein.cloud.tier3.compute.snapshot.Tier3Snapshot;
 import org.dasein.cloud.tier3.compute.vm.Tier3VM;
 
 public class Tier3ComputeServices extends AbstractComputeServices {
@@ -51,18 +53,13 @@ public class Tier3ComputeServices extends AbstractComputeServices {
 		return false;
 	}
 
-//	@Override
-//	public AutoScalingSupport getAutoScalingSupport() {
-//		return new Tier3AutoScaling(provider);
-//	}
-
 	@Override
 	public boolean hasSnapshotSupport() {
-		return false;
+		return true;
 	}
 
-//	@Override
-//	public SnapshotSupport getSnapshotSupport() {
-//		return new Tier3Snapshot(provider);
-//	}
+	@Override
+	public SnapshotSupport getSnapshotSupport() {
+		return new Tier3Snapshot(provider);
+	}
 }
