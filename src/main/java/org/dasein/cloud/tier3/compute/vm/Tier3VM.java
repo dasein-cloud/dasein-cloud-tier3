@@ -134,6 +134,20 @@ public class Tier3VM implements VirtualMachineSupport {
 		return null;
 	}
 
+	public VirtualMachineProduct getProduct(String os, Integer cpu, Integer memory) throws InternalException,
+			CloudException {
+		if (os == null || cpu == null || memory == null) {
+			return null;
+		}
+		for (VirtualMachineProduct product : listProducts(null)) {
+			if (product.getCpuCount() == cpu && product.getRamSize().convertTo(Storage.GIGABYTE).intValue() == memory
+					&& product.getName().startsWith(os)) {
+				return product;
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public String getProviderTermForServer(Locale locale) {
 		return "server";
@@ -225,6 +239,7 @@ public class Tier3VM implements VirtualMachineSupport {
 				String os = provider.getComputeTranslations().translateOS(ob.get("OperatingSystem"));
 				vm.setArchitecture(provider.getComputeTranslations().toArchitecture(os));
 				vm.setPlatform(Platform.guess(os));
+				vm.setProductId(getProduct(os, ob.getInt("Cpu"), ob.getInt("MemoryGB")).getProviderProductId());
 			}
 
 			if (ob.has("CustomFields") && !ob.isNull("CustomFields") && ob.getJSONArray("CustomFields").length() > 0) {
