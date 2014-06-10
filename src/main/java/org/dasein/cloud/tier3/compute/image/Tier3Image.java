@@ -67,34 +67,36 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public MachineImage captureImage(ImageCreateOptions options) throws CloudException, InternalException {
-		if (!options.getMetaData().containsKey("Password")) {
-			throw new CloudException("MetaData entry for 'Password' required");
-		}
-		APITrace.begin(provider, "captureImage");
-		try {
-			APIHandler method = new APIHandler(provider);
-			JSONObject post = new JSONObject();
-			post.put("Name", options.getVirtualMachineId());
-			post.put("Password", options.getMetaData().get("Password"));
-			post.put("TemplateAlias", options.getName());
-			APIResponse response = method.post("Server/ConvertServerToTemplate/JSON", post.toString());
-			response.validate();
-
-			JSONObject deployStatus = provider.getDeploymentStatus(response.getJSON().getInt("RequestID"));
-			MachineImage image = toMachineImage(deployStatus);
-			return image;
-
-		} catch (JSONException e) {
-			throw new CloudException(e);
-		} finally {
-			APITrace.end();
-		}
+		throw new OperationNotSupportedException();
+//		if (!options.getMetaData().containsKey("Password")) {
+//			throw new CloudException("MetaData entry for 'Password' required");
+//		}
+//		APITrace.begin(provider, "captureImage");
+//		try {
+//			APIHandler method = new APIHandler(provider);
+//			JSONObject post = new JSONObject();
+//			post.put("Name", options.getVirtualMachineId());
+//			post.put("Password", options.getMetaData().get("Password"));
+//			post.put("TemplateAlias", options.getName());
+//			APIResponse response = method.post("Server/ConvertServerToTemplate/JSON", post.toString());
+//			response.validate();
+//
+//			JSONObject deployStatus = provider.getDeploymentStatus(response.getJSON().getInt("RequestID"));
+//			MachineImage image = toMachineImage(deployStatus);
+//			return image;
+//
+//		} catch (JSONException e) {
+//			throw new CloudException(e);
+//		} finally {
+//			APITrace.end();
+//		}
 	}
 
 	@Override
 	public void captureImageAsync(ImageCreateOptions options, AsynchronousTask<MachineImage> taskTracker)
 			throws CloudException, InternalException {
-		captureImage(options);
+		throw new OperationNotSupportedException();
+//		captureImage(options);
 	}
 
 	@Override
