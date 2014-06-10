@@ -573,31 +573,11 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public Iterable<ResourceStatus> listVirtualMachineStatus() throws InternalException, CloudException {
-		APITrace.begin(provider, "listVirtualMachineStatus");
-		try {
-			APIHandler method = new APIHandler(provider);
-			APIResponse response = method.post("Server/GetAllServers/JSON", "");
-			response.validate();
-			
-			ArrayList<ResourceStatus> vms = new ArrayList<ResourceStatus>();
-
-			JSONObject json = response.getJSON();
-			if (json.has("Servers")) {
-				for (int i = 0; i < json.getJSONArray("Servers").length(); i++) {
-					ResourceStatus vm = provider.getComputeTranslations().toVmStatus(
-							json.getJSONArray("Servers").getJSONObject(i));
-					if (vm != null) {
-						vms.add(vm);
-					}
-				}
-			}
-
-			return vms;
-		} catch (JSONException e) {
-			throw new CloudException(e);
-		} finally {
-			APITrace.end();
+		ArrayList<ResourceStatus> vms = new ArrayList<ResourceStatus>();
+		for (VirtualMachine vm : listVirtualMachines()) {
+			vms.add(new ResourceStatus(vm.getProviderVirtualMachineId(), vm.getCurrentState()));
 		}
+		return vms;
 	}
 
 	@Override
