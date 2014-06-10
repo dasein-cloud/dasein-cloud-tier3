@@ -92,10 +92,8 @@ public class Tier3ComputeTranslations {
 			} else {
 				return VmState.PENDING;
 			}
-		} else if ("Deleted".equals(status)) {
+		} else if ("Deleted".equals(status) || "QueuedForDelete".equals(status)) {
 			return VmState.TERMINATED;
-		} else if (status.startsWith("Queued")) {
-			return VmState.PENDING;
 		} else if ("Archived".equals(status)) {
 			return VmState.SUSPENDED;
 		} else if ("UnderConstruction".equals(status)) {
