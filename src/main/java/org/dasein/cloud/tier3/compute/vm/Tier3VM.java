@@ -239,7 +239,11 @@ public class Tier3VM implements VirtualMachineSupport {
 				String os = provider.getComputeTranslations().translateOS(ob.get("OperatingSystem"));
 				vm.setArchitecture(provider.getComputeTranslations().toArchitecture(os));
 				vm.setPlatform(Platform.guess(os));
-				vm.setProductId(getProduct(os, ob.getInt("Cpu"), ob.getInt("MemoryGB")).getProviderProductId());
+				if (ob.has("Cpu") && ob.getInt("Cpu") > 0 && ob.has("MemoryGB") && ob.getInt("MemoryGB") > 0) {
+					vm.setProductId(getProduct(os, ob.getInt("Cpu"), ob.getInt("MemoryGB")).getProviderProductId());
+				} else {
+					vm.setProductId("-1");
+				}
 			}
 
 			if (ob.has("CustomFields") && !ob.isNull("CustomFields") && ob.getJSONArray("CustomFields").length() > 0) {
