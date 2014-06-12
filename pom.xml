@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.dasein</groupId>
 	<artifactId>dasein-cloud-tier3</artifactId>
-	<version>2013.04-SNAPSHOT</version>
+	<version>2014.05-SNAPSHOT</version>
 	<name>dasein-cloud-tier3</name>
 	<description>Implementation of the Dasein Cloud API for Tier 3 / CenturyLink.</description>
 	<inceptionYear>2014</inceptionYear>
@@ -32,7 +32,7 @@
 		<dependency>
 			<groupId>org.dasein</groupId>
 			<artifactId>dasein-cloud-core</artifactId>
-			<version>2013.04.1</version>
+			<version>2014.05.1</version>
 			<scope>compile</scope>
 			<optional>false</optional>
 		</dependency>
@@ -65,7 +65,7 @@
 		<dependency>
 			<groupId>org.dasein</groupId>
 			<artifactId>dasein-cloud-test</artifactId>
-			<version>2013.04.6</version>
+			<version>2014.05.1</version>
 			<scope>test</scope>
 			<optional>false</optional>
 		</dependency>
@@ -173,28 +173,12 @@
 							<value>${accountNumber}</value>
 						</property>
 						<property>
-							<name>accessPublic</name>
-							<value>${apiSharedKey}</value>
+							<name>apiAccessKeyShared</name>
+							<value>${apiAccessKeyShared}</value>
 						</property>
 						<property>
-							<name>accessPrivate</name>
-							<value>${apiSecretKey}</value>
-						</property>
-						<property>
-							<name>apiSharedKey</name>
-							<value>${apiSharedKey}</value>
-						</property>
-						<property>
-							<name>apiSecretKey</name>
-							<value>${apiSecretKey}</value>
-						</property>
-						<property>
-							<name>x509Cert</name>
-							<value>${x509Cert}</value>
-						</property>
-						<property>
-							<name>x509Key</name>
-							<value>${x509Key}</value>
+							<name>apiAccessKeySecret</name>
+							<value>${apiAccessKeySecret}</value>
 						</property>
 						<property>
 							<name>cloudName</name>
@@ -207,34 +191,6 @@
 						<property>
 							<name>regionId</name>
 							<value>${regionId}</value>
-						</property>
-						<property>
-							<name>test.region</name>
-							<value>${regionId}</value>
-						</property>
-						<property>
-							<name>test.dataCenter</name>
-							<value>${test.dataCenter}</value>
-						</property>
-						<property>
-							<name>test.machineImage</name>
-							<value>${test.machineImage}</value>
-						</property>
-						<property>
-							<name>test.product</name>
-							<value>${test.product}</value>
-						</property>
-						<property>
-							<name>test.shareAccount</name>
-							<value>${test.shareAccount}</value>
-						</property>
-						<property>
-							<name>shareAccount</name>
-							<value>${test.shareAccount}</value>
-						</property>
-						<property>
-							<name>customProperties</name>
-							<value>${customProperties}</value>
 						</property>
 					</systemProperties>
 					<includes>
