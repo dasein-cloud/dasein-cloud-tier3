@@ -18,12 +18,17 @@ import org.dasein.cloud.compute.Architecture;
 import org.dasein.cloud.compute.ImageClass;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.compute.Platform;
+import org.dasein.cloud.compute.SIRequestCreateOptions;
+import org.dasein.cloud.compute.SPHistoryFilterOptions;
+import org.dasein.cloud.compute.SpotInstanceRequest;
+import org.dasein.cloud.compute.SpotPriceHistory;
 import org.dasein.cloud.compute.VMFilterOptions;
 import org.dasein.cloud.compute.VMLaunchOptions;
 import org.dasein.cloud.compute.VMLaunchOptions.VolumeAttachment;
 import org.dasein.cloud.compute.VMScalingCapabilities;
 import org.dasein.cloud.compute.VMScalingOptions;
 import org.dasein.cloud.compute.VirtualMachine;
+import org.dasein.cloud.compute.VirtualMachineCapabilities;
 import org.dasein.cloud.compute.VirtualMachineProduct;
 import org.dasein.cloud.compute.VirtualMachineSupport;
 import org.dasein.cloud.compute.VmState;
@@ -36,6 +41,7 @@ import org.dasein.cloud.tier3.APIResponse;
 import org.dasein.cloud.tier3.Tier3;
 import org.dasein.cloud.tier3.compute.Tier3OS;
 import org.dasein.cloud.util.APITrace;
+import org.dasein.cloud.util.NamingConstraints;
 import org.dasein.util.CalendarWrapper;
 import org.dasein.util.uom.storage.Gigabyte;
 import org.dasein.util.uom.storage.Storage;
@@ -61,19 +67,24 @@ public class Tier3VM implements VirtualMachineSupport {
 			CloudException {
 		APITrace.begin(provider, "alterVirtualMachine");
 		try {
+			VirtualMachine vm = getVirtualMachine(vmId);
+			VirtualMachineProduct product = getProduct(options.getProviderProductId());
+			if (vm.getProductId() == options.getProviderProductId()) {
+				return vm;
+			}
+			vm.setProductId(product.getProviderProductId());
+
 			APIHandler method = new APIHandler(provider);
 			JSONObject post = new JSONObject();
-
-			VirtualMachine vm = getVirtualMachine(vmId);
-
-			VirtualMachineProduct product = getProduct(options.getProviderProductId());
-
+			post.put("AccountAlias", provider.getContext().getAccountNumber());
 			post.put("Name", vmId);
-			post.put("HardwareGroupID", vm.getTag("HardwareGroupID"));
+			if (vm.getTags() != null && vm.getTags().containsKey("HardwareGroupID")) {
+				post.put("HardwareGroupID", Integer.parseInt(vm.getTag("HardwareGroupID").toString()));
+			}
 			post.put("Cpu", product.getCpuCount());
-			post.put("MemoryGB", product.getRamSize());
+			post.put("MemoryGB", product.getRamSize().convertTo(Storage.GIGABYTE).intValue());
 
-			APIResponse response = method.post("Server/ConfigureServer/JSON", new JSONObject(post).toString());
+			APIResponse response = method.post("Server/ConfigureServer/JSON", post.toString());
 			response.validate();
 
 			return vm;
@@ -96,7 +107,7 @@ public class Tier3VM implements VirtualMachineSupport {
 	 * Use {@link Tier3Volume} to manage volumes and for vertical scaling.
 	 */
 	public VMScalingCapabilities describeVerticalScalingCapabilities() throws CloudException, InternalException {
-		return VMScalingCapabilities.getInstance(false, true, Requirement.NONE, Requirement.NONE);
+		return getCapabilities().getVerticalScalingCapabilities();
 	}
 
 	@Override
@@ -116,12 +127,12 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public int getCostFactor(VmState state) throws InternalException, CloudException {
-		return 100;
+		return getCapabilities().getCostFactor(state);
 	}
 
 	@Override
 	public int getMaximumVirtualMachineCount() throws CloudException, InternalException {
-		return -1;
+		return getCapabilities().getMaximumVirtualMachineCount();
 	}
 
 	@Override
@@ -150,6 +161,11 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public String getProviderTermForServer(Locale locale) {
+		try {
+			return getCapabilities().getProviderTermForVirtualMachine(locale);
+		} catch (CloudException e) {
+		} catch (InternalException e) {
+		}
 		return "server";
 	}
 
@@ -162,7 +178,15 @@ public class Tier3VM implements VirtualMachineSupport {
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
 			APIResponse response = method.post("Server/GetServer/JSON", json.toString());
-			response.validate();
+			try {
+				response.validate();
+			} catch (CloudException e) {
+				if (response.getJSON().getInt("StatusCode") == 5) {
+					return null;
+				} else {
+					throw e;
+				}
+			}
 
 			return toVirtualMachine(response.getJSON().getJSONObject("Server"));
 		} catch (JSONException e) {
@@ -190,7 +214,7 @@ public class Tier3VM implements VirtualMachineSupport {
 			vm.setProviderRegionId(provider.getContext().getRegionId());
 			vm.setTerminationTimestamp(-1L);
 			if (ob.has("HardwareGroupID")) {
-				vm.addTag(new Tag("HardwareGroupId", ob.getString("HardwareGroupID")));
+				vm.addTag(new Tag("HardwareGroupID", ob.getString("HardwareGroupID")));
 			}
 
 			if (ob.has("ID")) {
@@ -253,8 +277,9 @@ public class Tier3VM implements VirtualMachineSupport {
 					vm.addTag(new Tag(f.getString("Name"), f.getString("Value")));
 				}
 			}
-			
-			// since vlan isn't handed back in get server, need to look it up and match on ip
+
+			// since vlan isn't handed back in get server, need to look it up
+			// and match on ip
 			Iterable<VLAN> vlans = provider.getNetworkServices().getVlanSupport().listVlans();
 			JSONArray ips = ob.getJSONArray("IPAddresses");
 			for (VLAN vlan : vlans) {
@@ -290,7 +315,7 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public Requirement identifyImageRequirement(ImageClass cls) throws CloudException, InternalException {
-		return (cls.equals(ImageClass.MACHINE) ? Requirement.REQUIRED : Requirement.NONE);
+		return getCapabilities().identifyImageRequirement(cls);
 	}
 
 	@Override
@@ -300,47 +325,47 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public Requirement identifyPasswordRequirement(Platform platform) throws CloudException, InternalException {
-		return Requirement.REQUIRED;
+		return getCapabilities().identifyPasswordRequirement(platform);
 	}
 
 	@Override
 	public Requirement identifyRootVolumeRequirement() throws CloudException, InternalException {
-		return Requirement.NONE;
+		return getCapabilities().identifyRootVolumeRequirement();
 	}
 
 	@Override
 	public Requirement identifyShellKeyRequirement() throws CloudException, InternalException {
-		return Requirement.NONE;
+		return getCapabilities().identifyShellKeyRequirement(null);
 	}
 
 	@Override
 	public Requirement identifyShellKeyRequirement(Platform platform) throws CloudException, InternalException {
-		return Requirement.NONE;
+		return getCapabilities().identifyShellKeyRequirement(platform);
 	}
 
 	@Override
 	public Requirement identifyStaticIPRequirement() throws CloudException, InternalException {
-		return Requirement.NONE;
+		return getCapabilities().identifyStaticIPRequirement();
 	}
 
 	@Override
 	public Requirement identifyVlanRequirement() throws CloudException, InternalException {
-		return Requirement.REQUIRED;
+		return getCapabilities().identifyVlanRequirement();
 	}
 
 	@Override
 	public boolean isAPITerminationPreventable() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().isAPITerminationPreventable();
 	}
 
 	@Override
 	public boolean isBasicAnalyticsSupported() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().isBasicAnalyticsSupported();
 	}
 
 	@Override
 	public boolean isExtendedAnalyticsSupported() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().isExtendedAnalyticsSupported();
 	}
 
 	@Override
@@ -350,7 +375,7 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public boolean isUserDataSupported() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().isUserDataSupported();
 	}
 
 	@Override
@@ -371,7 +396,9 @@ public class Tier3VM implements VirtualMachineSupport {
 			JSONObject post = new JSONObject();
 
 			post.put("AccountAlias", provider.getContext().getAccountNumber());
-			post.put("LocationAlias", withLaunchOptions.getDataCenterId());
+			if (withLaunchOptions.getDataCenterId() != null) {
+				post.put("LocationAlias", withLaunchOptions.getDataCenterId());
+			}
 			post.put("Template", template.getName());
 			int cpu = 1;
 			if (template.getTags().containsKey("Cpu") && !template.getTag("Cpu").equals("0")) {
@@ -430,7 +457,7 @@ public class Tier3VM implements VirtualMachineSupport {
 			response.validate();
 
 			String vmId = null;
-			long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE*2);
+			long timeout = System.currentTimeMillis() + (CalendarWrapper.MINUTE * 2);
 			int requestId = response.getJSON().getInt("RequestID");
 			while (timeout > System.currentTimeMillis()) {
 
@@ -447,7 +474,7 @@ public class Tier3VM implements VirtualMachineSupport {
 					}
 				}
 			}
-			
+
 			// now wait for CLC to recognize the server exists
 			VirtualMachine vm = getVirtualMachine(vmId);
 			if (vm == null || (vm.getName() == null)) {
@@ -572,7 +599,7 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
-		return Arrays.asList(Architecture.I32, Architecture.I64);
+		return getCapabilities().listSupportedArchitectures();
 	}
 
 	@Override
@@ -591,7 +618,7 @@ public class Tier3VM implements VirtualMachineSupport {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Server/GetAllServers/JSON", "");
 			response.validate();
-			
+
 			ArrayList<VirtualMachine> vms = new ArrayList<VirtualMachine>();
 
 			JSONObject json = response.getJSON();
@@ -652,7 +679,18 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public void resume(String vmId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		APITrace.begin(provider, "suspend");
+		try {
+			APIHandler method = new APIHandler(provider);
+			JSONObject json = new JSONObject();
+			json.put("Name", vmId);
+			APIResponse apiResponse = method.post("Server/RestoreServer/JSON", json.toString());
+			apiResponse.validate();
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			APITrace.end();
+		}
 	}
 
 	@Override
@@ -714,12 +752,23 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public boolean supportsSuspendResume(VirtualMachine vm) {
-		return false;
+		return true;
 	}
 
 	@Override
 	public void suspend(String vmId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		APITrace.begin(provider, "suspend");
+		try {
+			APIHandler method = new APIHandler(provider);
+			JSONObject json = new JSONObject();
+			json.put("Name", vmId);
+			APIResponse apiResponse = method.post("Server/ArchiveServer/JSON", json.toString());
+			apiResponse.validate();
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			APITrace.end();
+		}
 	}
 
 	@Override
@@ -772,7 +821,7 @@ public class Tier3VM implements VirtualMachineSupport {
 			json.put("Location", dataCenterId);
 			APIResponse response = method.post("Group/GetGroups/JSON", json.toString());
 			response.validate();
-			
+
 			json = response.getJSON();
 			if (json != null && json.has("HardwareGroups") && json.getJSONArray("HardwareGroups").length() > 0) {
 				for (int i = 0; i < json.getJSONArray("HardwareGroups").length(); i++) {
@@ -793,5 +842,232 @@ public class Tier3VM implements VirtualMachineSupport {
 		} finally {
 			APITrace.end();
 		}
+	}
+
+	@Override
+	public void cancelSpotDataFeedSubscription() throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void cancelSpotInstanceRequest(String providerSpotInstanceRequestID) throws CloudException,
+			InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public SpotInstanceRequest createSpotInstanceRequest(SIRequestCreateOptions options) throws CloudException,
+			InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void enableSpotDataFeedSubscription(String s3BucketName) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public VirtualMachineCapabilities getCapabilities() throws InternalException, CloudException {
+		return new VirtualMachineCapabilities() {
+
+			@Override
+			public String getRegionId() {
+				return provider.getContext().getRegionId();
+			}
+
+			@Override
+			public String getAccountNumber() {
+				return provider.getContext().getAccountNumber();
+			}
+
+			@Override
+			public Iterable<Architecture> listSupportedArchitectures() throws InternalException, CloudException {
+				return Arrays.asList(Architecture.I32, Architecture.I64);
+			}
+
+			@Override
+			public boolean isUserDataSupported() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean isExtendedAnalyticsSupported() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean isBasicAnalyticsSupported() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean isAPITerminationPreventable() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public Requirement identifyVlanRequirement() throws CloudException, InternalException {
+				return Requirement.REQUIRED;
+			}
+
+			@Override
+			public Requirement identifySubnetRequirement() throws CloudException, InternalException {
+				return Requirement.NONE;
+			}
+
+			@Override
+			public Requirement identifyStaticIPRequirement() throws CloudException, InternalException {
+				return Requirement.NONE;
+			}
+
+			@Override
+			public Requirement identifyShellKeyRequirement(Platform platform) throws CloudException, InternalException {
+				return Requirement.NONE;
+			}
+
+			@Override
+			public Requirement identifyRootVolumeRequirement() throws CloudException, InternalException {
+				return Requirement.NONE;
+			}
+
+			@Override
+			public Requirement identifyPasswordRequirement(Platform platform) throws CloudException, InternalException {
+				return Requirement.REQUIRED;
+			}
+
+			@Override
+			public Requirement identifyImageRequirement(ImageClass cls) throws CloudException, InternalException {
+				return (cls.equals(ImageClass.MACHINE) ? Requirement.REQUIRED : Requirement.NONE);
+			}
+
+			@Override
+			public Requirement identifyDataCenterLaunchRequirement() throws CloudException, InternalException {
+				return Requirement.OPTIONAL;
+			}
+
+			@Override
+			public NamingConstraints getVirtualMachineNamingConstraints() throws CloudException, InternalException {
+				return NamingConstraints.getAlphaOnly(1, 6);
+			}
+
+			@Override
+			public VMScalingCapabilities getVerticalScalingCapabilities() throws CloudException, InternalException {
+				return VMScalingCapabilities.getInstance(false, true, Requirement.NONE, Requirement.NONE);
+			}
+
+			@Override
+			public String getProviderTermForVirtualMachine(Locale locale) throws CloudException, InternalException {
+				return "server";
+			}
+
+			@Override
+			public int getMaximumVirtualMachineCount() throws CloudException, InternalException {
+				return LIMIT_UNLIMITED;
+			}
+
+			@Override
+			public int getCostFactor(VmState state) throws CloudException, InternalException {
+				switch (state) {
+				case TERMINATED:
+					return 0;
+				case PAUSED:
+					return 50;
+				case SUSPENDED:
+					return 10;
+				default:
+					return 100;
+				}
+			}
+
+			@Override
+			public boolean canUnpause(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canTerminate(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canSuspend(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canStop(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canStart(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canResume(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canReboot(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canPause(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean canClone(VmState fromState) throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean canAlter(VmState fromState) throws CloudException, InternalException {
+				return true;
+			}
+		};
+	}
+
+	@Override
+	public String getPassword(String vmId) throws InternalException, CloudException {
+		APITrace.begin(provider, "getPassword");
+		APIHandler method = new APIHandler(provider);
+
+		try {
+			JSONObject json = new JSONObject();
+			json.put("Name", vmId);
+			APIResponse response = method.post("Server/GetServerCredentials/JSON", json.toString());
+			response.validate();
+
+			return response.getJSON().getString("Password");
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			APITrace.end();
+		}
+	}
+
+	@Override
+	public Iterable<String> launchMany(VMLaunchOptions withLaunchOptions, int count) throws CloudException,
+			InternalException {
+		ArrayList<String> vms = new ArrayList<String>();
+		for (int i = 0; i < count; i++) {
+			vms.add(launch(withLaunchOptions).getName());
+		}
+		return vms;
+	}
+
+	@Override
+	public Iterable<SpotPriceHistory> listSpotPriceHistories(SPHistoryFilterOptions options) throws CloudException,
+			InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void terminate(String vmId, String explanation) throws InternalException, CloudException {
+		terminate(vmId);
 	}
 }
