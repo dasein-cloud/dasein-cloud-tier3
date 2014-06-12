@@ -19,9 +19,9 @@
 
 package org.dasein.cloud.tier3;
 
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Properties;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.apache.log4j.Logger;
 import org.dasein.cloud.AbstractCloud;
 import org.dasein.cloud.CloudException;
+import org.dasein.cloud.ContextRequirements;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.compute.ComputeServices;
@@ -170,19 +171,18 @@ public class Tier3 extends AbstractCloud {
 			logger.trace("ENTER - " + Tier3.class.getName() + ".logon()");
 		}
 		try {
-			ProviderContext ctx = this.getContext();
-			connect(ctx);
-
-			Properties customProps = ctx.getCustomProperties();
-
+			byte[][] keys = (byte[][])getContext().getConfigurationValue("apiAccessKey");
 			JSONObject json = new JSONObject();
-			json.put("APIKey", customProps.getProperty("APIKey"));
-			json.put("Password", customProps.getProperty("Password"));
+			json.put("APIKey", new String(keys[0], "utf-8"));
+			json.put("Password", new String(keys[1], "utf-8"));
 			new APIHandler(this).post("Auth/Logon/", json.toString());
 
 		} catch (JSONException e) {
 			throw new CloudException(e);
 
+		} catch (UnsupportedEncodingException e) {
+			throw new CloudException(e);
+			
 		} finally {
 			if (logger.isTraceEnabled()) {
 				logger.trace("EXIT - " + Tier3.class.getName() + ".logon()");
@@ -254,5 +254,11 @@ public class Tier3 extends AbstractCloud {
 			}
 		}
 		return 0L;
+	}
+
+	@Override
+	public ContextRequirements getContextRequirements() {
+		return new ContextRequirements(
+				new ContextRequirements.Field("apiAccessKey", ContextRequirements.FieldType.KEYPAIR));
 	}
 }
