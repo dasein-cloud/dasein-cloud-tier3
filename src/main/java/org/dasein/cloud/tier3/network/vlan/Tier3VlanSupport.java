@@ -15,16 +15,20 @@ import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.network.IPVersion;
+import org.dasein.cloud.network.InternetGateway;
 import org.dasein.cloud.network.NICCreateOptions;
 import org.dasein.cloud.network.NetworkInterface;
 import org.dasein.cloud.network.Networkable;
 import org.dasein.cloud.network.RawAddress;
+import org.dasein.cloud.network.Route;
 import org.dasein.cloud.network.RoutingTable;
 import org.dasein.cloud.network.Subnet;
 import org.dasein.cloud.network.SubnetCreateOptions;
 import org.dasein.cloud.network.VLAN;
+import org.dasein.cloud.network.VLANCapabilities;
 import org.dasein.cloud.network.VLANState;
 import org.dasein.cloud.network.VLANSupport;
+import org.dasein.cloud.network.VlanCreateOptions;
 import org.dasein.cloud.tier3.APIHandler;
 import org.dasein.cloud.tier3.APIResponse;
 import org.dasein.cloud.tier3.Tier3;
@@ -46,52 +50,52 @@ public class Tier3VlanSupport implements VLANSupport {
 	}
 
 	@Override
-	public void addRouteToAddress(String toRoutingTableId, IPVersion version, String destinationCidr, String address)
+	public Route addRouteToAddress(String toRoutingTableId, IPVersion version, String destinationCidr, String address)
 			throws CloudException, InternalException {
 		throw new OperationNotSupportedException();
 	}
 
 	@Override
-	public void addRouteToGateway(String toRoutingTableId, IPVersion version, String destinationCidr, String gatewayId)
+	public Route addRouteToGateway(String toRoutingTableId, IPVersion version, String destinationCidr, String gatewayId)
 			throws CloudException, InternalException {
 		throw new OperationNotSupportedException();
 	}
 
 	@Override
-	public void addRouteToNetworkInterface(String toRoutingTableId, IPVersion version, String destinationCidr,
+	public Route addRouteToNetworkInterface(String toRoutingTableId, IPVersion version, String destinationCidr,
 			String nicId) throws CloudException, InternalException {
 		throw new OperationNotSupportedException();
 	}
 
 	@Override
-	public void addRouteToVirtualMachine(String toRoutingTableId, IPVersion version, String destinationCidr, String vmId)
+	public Route addRouteToVirtualMachine(String toRoutingTableId, IPVersion version, String destinationCidr, String vmId)
 			throws CloudException, InternalException {
 		throw new OperationNotSupportedException();
 	}
 
 	@Override
 	public boolean allowsNewNetworkInterfaceCreation() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().allowsNewNetworkInterfaceCreation();
 	}
 
 	@Override
 	public boolean allowsNewVlanCreation() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().allowsNewVlanCreation();
 	}
 
 	@Override
 	public boolean allowsNewSubnetCreation() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().allowsNewSubnetCreation();
 	}
 
 	@Override
 	public boolean allowsMultipleTrafficTypesOverSubnet() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().allowsMultipleTrafficTypesOverSubnet();
 	}
 
 	@Override
 	public boolean allowsMultipleTrafficTypesOverVlan() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().allowsMultipleTrafficTypesOverVlan();
 	}
 
 	@Override
@@ -150,26 +154,41 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public int getMaxNetworkInterfaceCount() throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		return getCapabilities().getMaxNetworkInterfaceCount();
 	}
 
 	@Override
 	public int getMaxVlanCount() throws CloudException, InternalException {
-		return -1;
+		return getCapabilities().getMaxVlanCount();
 	}
 
 	@Override
 	public String getProviderTermForNetworkInterface(Locale locale) {
+		try {
+			return getCapabilities().getProviderTermForNetworkInterface(locale);
+		} catch (CloudException e) {
+		} catch (InternalException e) {
+		}
 		return "interface";
 	}
 
 	@Override
 	public String getProviderTermForSubnet(Locale locale) {
+		try {
+			return getCapabilities().getProviderTermForSubnet(locale);
+		} catch (CloudException e) {
+		} catch (InternalException e) {
+		}
 		return "subnet";
 	}
 
 	@Override
 	public String getProviderTermForVlan(Locale locale) {
+		try {
+			return getCapabilities().getProviderTermForVlan(locale);
+		} catch (CloudException e) {
+		} catch (InternalException e) {
+		}
 		return "network";
 	}
 
@@ -185,7 +204,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public Requirement getRoutingTableSupport() throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		return getCapabilities().getRoutingTableSupport();
 	}
 
 	@Override
@@ -200,7 +219,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public Requirement getSubnetSupport() throws CloudException, InternalException {
-		return Requirement.NONE;
+		return getCapabilities().getSubnetSupport();
 	}
 
 	@Override
@@ -214,8 +233,16 @@ public class Tier3VlanSupport implements VLANSupport {
 			JSONObject post = new JSONObject();
 			post.put("Name", vlanId);
 			APIResponse response = method.post("Network/GetNetworkDetails/JSON", post.toString());
-			response.validate();
-
+			try {
+				response.validate();
+			} catch (CloudException e) {
+				if (response.getJSON().getInt("StatusCode") == 5) {
+					return null;
+				} else {
+					throw e;
+				}
+			}
+			
 			if (response.getJSON().has("NetworkDetails")) {
 				return toVlan(response.getJSON().getJSONObject("NetworkDetails"));
 			}
@@ -230,7 +257,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public Requirement identifySubnetDCRequirement() throws CloudException, InternalException {
-		return Requirement.NONE;
+		return getCapabilities().identifySubnetDCRequirement();
 	}
 
 	@Override
@@ -240,7 +267,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public boolean isNetworkInterfaceSupportEnabled() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().isNetworkInterfaceSupportEnabled();
 	}
 
 	@Override
@@ -250,12 +277,12 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public boolean isSubnetDataCenterConstrained() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().isSubnetDataCenterConstrained();
 	}
 
 	@Override
 	public boolean isVlanDataCenterConstrained() throws CloudException, InternalException {
-		return true;
+		return getCapabilities().isVlanDataCenterConstrained();
 	}
 
 	@Override
@@ -298,7 +325,7 @@ public class Tier3VlanSupport implements VLANSupport {
 			post.put("Name", vlanId);
 			APIResponse response = method.post("Network/GetNetworkDetails/JSON", post.toString());
 			response.validate();
-			
+
 			ArrayList<NetworkInterface> networks = new ArrayList<NetworkInterface>();
 			if (response.getJSON().has("NetworkDetails")) {
 				networks.add(toNetwork(response.getJSON().getJSONObject("NetworkDetails")));
@@ -329,7 +356,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public Iterable<IPVersion> listSupportedIPVersions() throws CloudException, InternalException {
-		return Arrays.asList(IPVersion.IPV4);
+		return getCapabilities().listSupportedIPVersions();
 	}
 
 	@Override
@@ -339,7 +366,7 @@ public class Tier3VlanSupport implements VLANSupport {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Network/GetNetworks/JSON", "");
 			response.validate();
-			
+
 			ArrayList<ResourceStatus> vlans = new ArrayList<ResourceStatus>();
 
 			JSONObject json = response.getJSON();
@@ -368,7 +395,7 @@ public class Tier3VlanSupport implements VLANSupport {
 			APIHandler method = new APIHandler(provider);
 			APIResponse response = method.post("Network/GetNetworks/JSON", "");
 			response.validate();
-			
+
 			ArrayList<VLAN> vlans = new ArrayList<VLAN>();
 
 			JSONObject json = response.getJSON();
@@ -379,7 +406,7 @@ public class Tier3VlanSupport implements VLANSupport {
 					post.put("Name", json.getJSONArray("Networks").getJSONObject(i).getString("Name"));
 					APIResponse detailResponse = method.post("Network/GetNetworkDetails/JSON", post.toString());
 					detailResponse.validate();
-					
+
 					JSONObject detailJson = detailResponse.getJSON();
 					if (!detailJson.getBoolean("Success")) {
 						throw new CloudException(detailJson.getString("Message"));
@@ -440,12 +467,12 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public boolean supportsInternetGatewayCreation() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().supportsInternetGatewayCreation();
 	}
 
 	@Override
 	public boolean supportsRawAddressRouting() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().supportsRawAddressRouting();
 	}
 
 	@Override
@@ -467,9 +494,10 @@ public class Tier3VlanSupport implements VLANSupport {
 
 			vlan.setProviderVlanId(ob.getString("Name"));
 			vlan.setProviderOwnerId(provider.getContext().getAccountNumber());
-			vlan.setProviderRegionId(provider.getDataCenterServices().getDataCenter(ob.getString("Location")).getRegionId());
+			vlan.setProviderRegionId(provider.getDataCenterServices().getDataCenter(ob.getString("Location"))
+					.getRegionId());
 			vlan.setProviderDataCenterId(ob.getString("Location"));
-			
+
 			vlan.setCurrentState(VLANState.AVAILABLE);
 			vlan.setName(ob.getString("Name"));
 			vlan.setDescription(ob.getString("Description"));
@@ -478,14 +506,14 @@ public class Tier3VlanSupport implements VLANSupport {
 			vlan.setSupportedTraffic(IPVersion.IPV4);
 			vlan.setDnsServers(new String[0]);
 			vlan.setNtpServers(new String[0]);
-			vlan.setTags(Collections.<String,String>emptyMap());
+			vlan.setTags(Collections.<String, String> emptyMap());
 
 			return vlan;
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		}
 	}
-	
+
 	private NetworkInterface toNetwork(JSONObject ob) throws CloudException, InternalException {
 		if (ob == null) {
 			return null;
@@ -497,7 +525,7 @@ public class Tier3VlanSupport implements VLANSupport {
 			network.setName(ob.getString("Name"));
 			network.setDescription(ob.getString("Description"));
 			network.setProviderDataCenterId(ob.getString("Location"));
-			
+
 			ArrayList<RawAddress> ips = new ArrayList<RawAddress>();
 			if (ob.has("IPAddresses")) {
 				for (int i = 0; i < ob.getJSONArray("IPAddresses").length(); i++) {
@@ -508,10 +536,197 @@ public class Tier3VlanSupport implements VLANSupport {
 			if (ips.size() > 0) {
 				network.setIpAddresses(ips.toArray(new RawAddress[ips.size()]));
 			}
-			
+
 			return network;
 		} catch (JSONException e) {
 			throw new CloudException(e);
 		}
+	}
+
+	@Override
+	public boolean allowsNewRoutingTableCreation() throws CloudException, InternalException {
+		return getCapabilities().allowsNewRoutingTableCreation();
+	}
+
+	@Override
+	public void disassociateRoutingTableFromSubnet(String subnetId, String routingTableId) throws CloudException,
+			InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public VLAN createVlan(VlanCreateOptions options) throws InternalException, CloudException {
+		throw new OperationNotSupportedException("Vlans can only be created via the CenturyLink Cloud Control Portal.");
+	}
+
+	@Override
+	public VLANCapabilities getCapabilities() throws CloudException, InternalException {
+		return new VLANCapabilities() {
+
+			@Override
+			public String getRegionId() {
+				return provider.getContext().getRegionId();
+			}
+
+			@Override
+			public String getAccountNumber() {
+				return provider.getContext().getAccountNumber();
+			}
+
+			@Override
+			public boolean supportsRawAddressRouting() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean supportsInternetGatewayCreation() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public Iterable<IPVersion> listSupportedIPVersions() throws CloudException, InternalException {
+				return Arrays.asList(IPVersion.IPV4);
+			}
+
+			@Override
+			public boolean isVlanDataCenterConstrained() throws CloudException, InternalException {
+				return true;
+			}
+
+			@Override
+			public boolean isSubnetDataCenterConstrained() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean isNetworkInterfaceSupportEnabled() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public Requirement identifySubnetDCRequirement() throws CloudException, InternalException {
+				return Requirement.NONE;
+			}
+
+			@Override
+			public Requirement getSubnetSupport() throws CloudException, InternalException {
+				return Requirement.NONE;
+			}
+
+			@Override
+			public Requirement getRoutingTableSupport() throws CloudException, InternalException {
+				throw new OperationNotSupportedException();
+			}
+
+			@Override
+			public String getProviderTermForVlan(Locale locale) {
+				return "network";
+			}
+
+			@Override
+			public String getProviderTermForSubnet(Locale locale) {
+				return "subnet";
+			}
+
+			@Override
+			public String getProviderTermForNetworkInterface(Locale locale) {
+				return "interface";
+			}
+
+			@Override
+			public int getMaxVlanCount() throws CloudException, InternalException {
+				return LIMIT_UNLIMITED;
+			}
+
+			@Override
+			public int getMaxNetworkInterfaceCount() throws CloudException, InternalException {
+				throw new OperationNotSupportedException();
+			}
+
+			@Override
+			public boolean allowsNewVlanCreation() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean allowsNewSubnetCreation() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean allowsNewRoutingTableCreation() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean allowsNewNetworkInterfaceCreation() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean allowsMultipleTrafficTypesOverVlan() throws CloudException, InternalException {
+				return false;
+			}
+
+			@Override
+			public boolean allowsMultipleTrafficTypesOverSubnet() throws CloudException, InternalException {
+				return false;
+			}
+		};
+	}
+
+	@Override
+	public RoutingTable getRoutingTable(String id) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public String getAttachedInternetGatewayId(String vlanId) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public InternetGateway getInternetGatewayById(String gatewayId) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public Collection<InternetGateway> listInternetGateways(String vlanId) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public Iterable<RoutingTable> listRoutingTablesForSubnet(String subnetId) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public Iterable<RoutingTable> listRoutingTablesForVlan(String vlanId) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void removeInternetGatewayById(String id) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void removeSubnetTags(String subnetId, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void removeSubnetTags(String[] subnetIds, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void updateSubnetTags(String subnetId, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void updateSubnetTags(String[] subnetIds, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
 	}
 }

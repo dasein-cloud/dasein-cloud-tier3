@@ -13,6 +13,7 @@ import org.dasein.cloud.Requirement;
 import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
 import org.dasein.cloud.compute.Architecture;
+import org.dasein.cloud.compute.ImageCapabilities;
 import org.dasein.cloud.compute.ImageClass;
 import org.dasein.cloud.compute.ImageCreateOptions;
 import org.dasein.cloud.compute.ImageFilterOptions;
@@ -22,6 +23,7 @@ import org.dasein.cloud.compute.MachineImageState;
 import org.dasein.cloud.compute.MachineImageSupport;
 import org.dasein.cloud.compute.MachineImageType;
 import org.dasein.cloud.compute.Platform;
+import org.dasein.cloud.compute.VmState;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.tier3.APIHandler;
 import org.dasein.cloud.tier3.APIResponse;
@@ -119,6 +121,11 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public String getProviderTermForImage(Locale locale) {
+		try {
+			return getCapabilities().getProviderTermForImage(locale, null);
+		} catch (CloudException e) {
+		} catch (InternalException e) {
+		}
 		return "template";
 	}
 
@@ -137,7 +144,12 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
-		return getProviderTermForImage(locale, cls);
+		try {
+			return getCapabilities().getProviderTermForCustomImage(locale, cls);
+		} catch (CloudException e) {
+		} catch (InternalException e) {
+		}
+		return "template";
 	}
 
 	@Override
@@ -147,7 +159,7 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-		return Requirement.REQUIRED;
+		return getCapabilities().identifyLocalBundlingRequirement();
 	}
 
 	@Override
@@ -274,12 +286,12 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
-		return Collections.emptyList();
+		return getCapabilities().listSupportedFormats();
 	}
 
 	@Override
 	public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException, InternalException {
-		return Collections.emptyList();
+		return getCapabilities().listSupportedFormatsForBundling();
 	}
 
 	@Override
@@ -299,12 +311,12 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
-		return Collections.singletonList(ImageClass.MACHINE);
+		return getCapabilities().listSupportedImageClasses();
 	}
 
 	@Override
 	public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
-		return Collections.singletonList(MachineImageType.VOLUME);
+		return getCapabilities().listSupportedImageTypes();
 	}
 
 	@Override
@@ -438,30 +450,27 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public boolean supportsDirectImageUpload() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().supportsDirectImageUpload();
 	}
 
 	@Override
 	public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
-		if (type != null && type == MachineImageType.VOLUME) {
-			return true;
-		}
-		return false;
+		return getCapabilities().supportsImageCapture(type);
 	}
 
 	@Override
 	public boolean supportsImageSharing() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().supportsImageSharing();
 	}
 
 	@Override
 	public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
-		return false;
+		return getCapabilities().supportsImageSharingWithPublic();
 	}
 
 	@Override
 	public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
-		return false;
+		return getCapabilities().supportsPublicLibrary(cls);
 	}
 
 	@Override
@@ -482,5 +491,91 @@ public class Tier3Image implements MachineImageSupport {
 	@Override
 	public void removeTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public ImageCapabilities getCapabilities() throws CloudException, InternalException {
+		return new ImageCapabilities() {
+			
+			@Override
+			public String getRegionId() {
+				return provider.getContext().getRegionId();
+			}
+			
+			@Override
+			public String getAccountNumber() {
+				return provider.getContext().getAccountNumber();
+			}
+			
+			@Override
+			public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
+				return false;
+			}
+			
+			@Override
+			public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
+				return false;
+			}
+			
+			@Override
+			public boolean supportsImageSharing() throws CloudException, InternalException {
+				return false;
+			}
+			
+			@Override
+			public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
+				return false;
+			}
+			
+			@Override
+			public boolean supportsDirectImageUpload() throws CloudException, InternalException {
+				return false;
+			}
+			
+			@Override
+			public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
+				return Collections.singletonList(MachineImageType.VOLUME);
+			}
+			
+			@Override
+			public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
+				return Collections.singletonList(ImageClass.MACHINE);
+			}
+			
+			@Override
+			public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException, InternalException {
+				return Collections.emptyList();
+			}
+			
+			@Override
+			public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
+				return Collections.emptyList();
+			}
+			
+			@Override
+			public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
+				return Requirement.REQUIRED;
+			}
+			
+			@Override
+			public String getProviderTermForImage(Locale locale, ImageClass cls) {
+				return "template";
+			}
+			
+			@Override
+			public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
+				return getProviderTermForImage(locale, cls);
+			}
+			
+			@Override
+			public boolean canImage(VmState fromState) throws CloudException, InternalException {
+				return false;
+			}
+			
+			@Override
+			public boolean canBundle(VmState fromState) throws CloudException, InternalException {
+				return false;
+			}
+		};
 	}
 }
