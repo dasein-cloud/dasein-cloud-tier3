@@ -61,10 +61,6 @@ import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.util.APITrace;
-import org.dasein.cloud.util.Cache;
-import org.dasein.cloud.util.CacheLevel;
-import org.dasein.util.uom.time.Hour;
-import org.dasein.util.uom.time.TimePeriod;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -124,19 +120,7 @@ public class APIHandler {
 
 					delete.addHeader("Accept", "application/json");
 					delete.addHeader("Content-type", "application/json");
-
-					Cache<String> cache = Cache.getInstance(provider, "session", String.class,
-							CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(1, TimePeriod.HOUR));
-					Iterable<String> sessionIds = cache.get(ctx);
-					if (sessionIds == null) {
-						provider.logon();
-						sessionIds = cache.get(ctx);
-					} else {
-						for (String sessionId : sessionIds) {
-							delete.addHeader("Cookie", sessionId.toString());
-							break;
-						}
-					}
+					delete.addHeader("Cookie", provider.logon());
 
 					if (wire.isDebugEnabled()) {
 						wire.debug(delete.getRequestLine().toString());
@@ -308,19 +292,7 @@ public class APIHandler {
 
 					get.addHeader("Accept", "application/json");
 					get.addHeader("Content-Type", "application/json");
-
-					Cache<String> cache = Cache.getInstance(provider, "session", String.class,
-							CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(1, TimePeriod.HOUR));
-					Iterable<String> sessionIds = cache.get(ctx);
-					if (sessionIds == null) {
-						provider.logon();
-						sessionIds = cache.get(ctx);
-					} else {
-						for (String sessionId : sessionIds) {
-							get.addHeader("Cookie", sessionId.toString());
-							break;
-						}
-					}
+					get.addHeader("Cookie", provider.logon());
 
 					if (wire.isDebugEnabled()) {
 						wire.debug(get.getRequestLine().toString());
@@ -581,18 +553,8 @@ public class APIHandler {
 					post.addHeader("Accept", "application/json");
 					post.addHeader("Content-type", "application/json");
 
-					if (!resource.contains("/Logon/")) {
-						Cache<String> cache = Cache.getInstance(provider, "session", String.class,
-								CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(1, TimePeriod.HOUR));
-						Iterable<String> sessionIds = cache.get(ctx);
-						if (sessionIds == null) {
-							provider.logon();
-						}
-						sessionIds = cache.get(ctx);
-						for (String sessionId : sessionIds) {
-							post.addHeader("Cookie", sessionId.toString());
-							break;
-						}
+					if (!resource.contains("Auth/Logon/")) {
+						post.addHeader("Cookie", provider.logon());
 					}
 
 					try {
@@ -642,23 +604,22 @@ public class APIHandler {
 						throw new CloudException("No such endpoint: " + target);
 					}
 					if (resource.contains("/Logon/") && status.getStatusCode() == OK) {
-						
-						// handle logon response specially
-						Header[] cookieHdrs = response.getHeaders("Set-Cookie");
-						for (int c = 0; c < cookieHdrs.length; c++) {
-							Header cookieHdr = cookieHdrs[c];
-							if (cookieHdr.getValue().startsWith("Tier3.API.Cookie")) {
-								Cache<String> cache = Cache.getInstance(provider, "session", String.class,
-										CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(1, TimePeriod.HOUR));
-								cache.put(ctx, Arrays.asList(cookieHdr.getValue()));
-								break;
-							}
-						}
-
 						APIResponse r = new APIResponse();
-
+						
 						try {
-							r.receive(status.getStatusCode(), new JSONObject(json), true);
+							JSONObject jsonCookie = new JSONObject();
+	
+							// handle logon response specially
+							Header[] cookieHdrs = response.getHeaders("Set-Cookie");
+							for (int c = 0; c < cookieHdrs.length; c++) {
+								Header cookieHdr = cookieHdrs[c];
+								if (cookieHdr.getValue().startsWith("Tier3.API.Cookie")) {
+									jsonCookie.put("Cookie", cookieHdr.getValue());
+									break;
+								}
+							}
+
+							r.receive(status.getStatusCode(), jsonCookie, true);
 						} catch (JSONException e) {
 							throw new CloudException(e);
 						}
@@ -766,25 +727,13 @@ public class APIHandler {
 
 					put.addHeader("Accept", "application/json");
 					put.addHeader("Content-type", "application/json");
+					put.addHeader("Cookie", provider.logon());
 
 					try {
 						put.setEntity(new StringEntity(json, "utf-8"));
 					} catch (UnsupportedEncodingException e) {
 						logger.error("Unsupported encoding UTF-8: " + e.getMessage());
 						throw new InternalException(e);
-					}
-
-					Cache<String> cache = Cache.getInstance(provider, "session", String.class,
-							CacheLevel.CLOUD_ACCOUNT, new TimePeriod<Hour>(1, TimePeriod.HOUR));
-					Iterable<String> sessionIds = cache.get(ctx);
-					if (sessionIds == null) {
-						provider.logon();
-						sessionIds = cache.get(ctx);
-					} else {
-						for (String sessionId : sessionIds) {
-							put.addHeader("Cookie", sessionId.toString());
-							break;
-						}
 					}
 
 					if (wire.isDebugEnabled()) {

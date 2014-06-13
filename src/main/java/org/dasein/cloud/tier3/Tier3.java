@@ -166,7 +166,7 @@ public class Tier3 extends AbstractCloud {
 	}
 
 	@Nonnull
-	public void logon() throws CloudException, InternalException {
+	public String logon() throws CloudException, InternalException {
 		if (logger.isTraceEnabled()) {
 			logger.trace("ENTER - " + Tier3.class.getName() + ".logon()");
 		}
@@ -175,7 +175,11 @@ public class Tier3 extends AbstractCloud {
 			JSONObject json = new JSONObject();
 			json.put("APIKey", new String(keys[0], "utf-8"));
 			json.put("Password", new String(keys[1], "utf-8"));
-			new APIHandler(this).post("Auth/Logon/", json.toString());
+			APIResponse response = new APIHandler(this).post("Auth/Logon/", json.toString());
+			if (response != null && response.getJSON() != null && response.getJSON().has("Session")) {
+				return response.getJSON().getString("Session");
+			}
+			throw new InternalException("Error obtaining session with supplied credentials");
 
 		} catch (JSONException e) {
 			throw new CloudException(e);
