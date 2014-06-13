@@ -452,7 +452,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public void removeVlan(String vlanId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		// unimplemented
 	}
 
 	@Override
@@ -615,7 +615,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 			@Override
 			public Requirement getRoutingTableSupport() throws CloudException, InternalException {
-				throw new OperationNotSupportedException();
+				return Requirement.NONE;
 			}
 
 			@Override
@@ -677,7 +677,7 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public RoutingTable getRoutingTable(String id) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		return null;
 	}
 
 	@Override
@@ -687,22 +687,22 @@ public class Tier3VlanSupport implements VLANSupport {
 
 	@Override
 	public InternetGateway getInternetGatewayById(String gatewayId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		return null;
 	}
 
 	@Override
 	public Collection<InternetGateway> listInternetGateways(String vlanId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		return Collections.emptyList();
 	}
 
 	@Override
 	public Iterable<RoutingTable> listRoutingTablesForSubnet(String subnetId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		return Collections.emptyList();
 	}
 
 	@Override
 	public Iterable<RoutingTable> listRoutingTablesForVlan(String vlanId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
+		return Collections.emptyList();
 	}
 
 	@Override
