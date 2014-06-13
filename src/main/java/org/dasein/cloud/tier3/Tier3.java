@@ -171,7 +171,7 @@ public class Tier3 extends AbstractCloud {
 			logger.trace("ENTER - " + Tier3.class.getName() + ".logon()");
 		}
 		try {
-			byte[][] keys = (byte[][])getContext().getConfigurationValue("apiAccessKey");
+			byte[][] keys = (byte[][]) getContext().getConfigurationValue("apiAccessKey");
 			JSONObject json = new JSONObject();
 			json.put("APIKey", new String(keys[0], "utf-8"));
 			json.put("Password", new String(keys[1], "utf-8"));
@@ -186,7 +186,7 @@ public class Tier3 extends AbstractCloud {
 
 		} catch (UnsupportedEncodingException e) {
 			throw new CloudException(e);
-			
+
 		} finally {
 			if (logger.isTraceEnabled()) {
 				logger.trace("EXIT - " + Tier3.class.getName() + ".logon()");
@@ -262,7 +262,7 @@ public class Tier3 extends AbstractCloud {
 
 	@Override
 	public ContextRequirements getContextRequirements() {
-		return new ContextRequirements(
-				new ContextRequirements.Field("apiAccessKey", ContextRequirements.FieldType.KEYPAIR));
+		return new ContextRequirements(new ContextRequirements.Field("apiAccessKey",
+				ContextRequirements.FieldType.KEYPAIR));
 	}
 }

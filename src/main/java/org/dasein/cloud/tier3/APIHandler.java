@@ -241,8 +241,8 @@ public class APIHandler {
 			final @Nonnull String resource, final @Nullable String id, final @Nullable NameValuePair... parameters)
 			throws InternalException, CloudException {
 		if (logger.isTraceEnabled()) {
-			logger.trace("ENTER - " + APIHandler.class.getName() + ".get(" + paginationId + "," + page + ","
-					+ resource + "," + id + "," + Arrays.toString(parameters) + ")");
+			logger.trace("ENTER - " + APIHandler.class.getName() + ".get(" + paginationId + "," + page + "," + resource
+					+ "," + id + "," + Arrays.toString(parameters) + ")");
 		}
 		try {
 			NameValuePair[] params;
@@ -350,8 +350,8 @@ public class APIHandler {
 							wire.debug(body);
 						}
 						wire.debug("");
-						apiResponse.receive(new Tier3Exception(CloudErrorType.GENERAL, status.getStatusCode(),
-								status.getReasonPhrase(), body));
+						apiResponse.receive(new Tier3Exception(CloudErrorType.GENERAL, status.getStatusCode(), status
+								.getReasonPhrase(), body));
 					} else {
 						HttpEntity entity = response.getEntity();
 
@@ -547,7 +547,7 @@ public class APIHandler {
 					if (ctx == null) {
 						throw new NoContextException();
 					}
-					
+
 					HttpPost post = new HttpPost(target);
 
 					post.addHeader("Accept", "application/json");
@@ -693,11 +693,10 @@ public class APIHandler {
 	}
 
 	public @Nonnull
-	APIResponse put(@Nonnull String resource, @Nonnull String id, @Nonnull String json)
-			throws InternalException, CloudException {
+	APIResponse put(@Nonnull String resource, @Nonnull String id, @Nonnull String json) throws InternalException,
+			CloudException {
 		if (logger.isTraceEnabled()) {
-			logger.trace("ENTER - " + APIHandler.class.getName() + ".put(" + resource + "," + id + "," + json
-					+ ")");
+			logger.trace("ENTER - " + APIHandler.class.getName() + ".put(" + resource + "," + id + "," + json + ")");
 		}
 		try {
 			String target = getEndpoint(resource, id);
@@ -728,7 +727,7 @@ public class APIHandler {
 					put.addHeader("Accept", "application/json");
 					put.addHeader("Content-type", "application/json");
 					put.addHeader("Cookie", provider.logon());
-
+					
 					try {
 						put.setEntity(new StringEntity(json, "utf-8"));
 					} catch (UnsupportedEncodingException e) {
