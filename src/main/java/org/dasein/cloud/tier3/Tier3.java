@@ -22,6 +22,7 @@ package org.dasein.cloud.tier3;
 import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,6 +39,10 @@ import org.dasein.cloud.tier3.compute.Tier3ComputeServices;
 import org.dasein.cloud.tier3.compute.Tier3ComputeTranslations;
 import org.dasein.cloud.tier3.network.Tier3NetworkServices;
 import org.dasein.cloud.tier3.network.Tier3NetworkTranslations;
+import org.dasein.cloud.util.Cache;
+import org.dasein.cloud.util.CacheLevel;
+import org.dasein.util.uom.time.Hour;
+import org.dasein.util.uom.time.TimePeriod;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -146,11 +151,9 @@ public class Tier3 extends AbstractCloud {
 				JSONObject json = new JSONObject();
 				json.put("AccountAlias", ctx.getAccountNumber());
 				APIResponse response = new APIHandler(this).post("Account/GetAccountDetails/JSON", json.toString());
-				if (response != null) {
-					if (response.getJSON().getBoolean("Success")
-							&& response.getJSON().getString("AccountDetails") != null) {
-						return response.getJSON().getJSONObject("AccountDetails").getString("AccountAlias");
-					}
+				response.validate();
+				if (response.getJSON().getString("AccountDetails") != null) {
+					return response.getJSON().getJSONObject("AccountDetails").getString("AccountAlias");
 				}
 				return null;
 			} catch (Throwable t) {
@@ -170,16 +173,41 @@ public class Tier3 extends AbstractCloud {
 		if (logger.isTraceEnabled()) {
 			logger.trace("ENTER - " + Tier3.class.getName() + ".logon()");
 		}
+		String sessionId = null;
 		try {
 			byte[][] keys = (byte[][]) getContext().getConfigurationValue("apiAccessKey");
-			JSONObject json = new JSONObject();
-			json.put("APIKey", new String(keys[0], "utf-8"));
-			json.put("Password", new String(keys[1], "utf-8"));
-			APIResponse response = new APIHandler(this).post("Auth/Logon/", json.toString());
-			if (response != null && response.getJSON() != null && response.getJSON().has("Session")) {
-				return response.getJSON().getString("Session");
+			String apiKey = new String(keys[0], "utf-8");
+			String apiPass = new String(keys[1], "utf-8");
+
+			Cache<String> cacheComp = Cache.getInstance(this, "sessionComparables", String.class,
+					CacheLevel.CLOUD_ACCOUNT);
+			Iterable<String> sessionComparables = cacheComp.get(this.getContext());
+
+			Boolean refreshSession = false;
+			if (sessionComparables == null
+					|| !sessionComparables.iterator().next().equals(getContext().getAccountNumber() + apiKey + apiPass)) {
+				cacheComp.put(getContext(), Arrays.asList(getContext().getAccountNumber() + apiKey + apiPass));
+				refreshSession = true;
 			}
-			throw new InternalException("Error obtaining session with supplied credentials");
+
+			Cache<String> cache = Cache.getInstance(this, "sessionIds", String.class, CacheLevel.CLOUD_ACCOUNT,
+					new TimePeriod<Hour>(4, TimePeriod.HOUR));
+			Iterable<String> sessionIds = cache.get(this.getContext());
+			if (sessionIds == null || refreshSession) {
+				JSONObject json = new JSONObject();
+				json.put("APIKey", apiKey);
+				json.put("Password", apiPass);
+				APIResponse response = new APIHandler(this).post("Auth/Logon/", json.toString());
+				if (response != null && response.getJSON() != null && response.getJSON().has("Session")) {
+					sessionId = response.getJSON().getString("Session");
+				} else {
+					throw new InternalException("Error obtaining session with supplied credentials");
+				}
+				cache.put(getContext(), Arrays.asList(sessionId));
+			} else {
+				sessionId = sessionIds.iterator().next();
+			}
+			return sessionId;
 
 		} catch (JSONException e) {
 			throw new CloudException(e);

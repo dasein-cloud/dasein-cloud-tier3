@@ -614,7 +614,7 @@ public class APIHandler {
 							for (int c = 0; c < cookieHdrs.length; c++) {
 								Header cookieHdr = cookieHdrs[c];
 								if (cookieHdr.getValue().startsWith("Tier3.API.Cookie")) {
-									jsonCookie.put("Cookie", cookieHdr.getValue());
+									jsonCookie.put("Session", cookieHdr.getValue());
 									break;
 								}
 							}
