@@ -445,7 +445,7 @@ public class Tier3Image implements MachineImageSupport {
 
 	@Override
 	public boolean supportsCustomImages() throws CloudException, InternalException {
-		return getCapabilities().supportsDirectImageUpload();
+		return getCapabilities().supportsImageCapture(null);
 	}
 
 	@Override
