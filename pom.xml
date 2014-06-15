@@ -20,8 +20,8 @@
 		<name>Tier 3 / CenturyLink Technology Solutions</name>
 		<url>http://www.centurylinkcloud.com</url>
 	</organization>
-	<!-- scm> <connection>scm:git:git://github.com/greese/dasein-cloud-tier3.git</connection> <developerConnection>scm:git:ssh://git@github.com/greese/dasein-cloud-centurylink.git</developerConnection> 
-		<url>http://github.com/greese/dasein-cloud-tier3</url> </scm -->
+	<!-- scm> <connection>scm:git:git://github.com/greese/dasein-cloud-tier3.git</connection> <developerConnection>scm:git:ssh://git@github.com/greese/dasein-cloud-centurylink.git</developerConnection> <url>http://github.com/greese/dasein-cloud-tier3</url> 
+		</scm -->
 	<parent>
 		<groupId>org.sonatype.oss</groupId>
 		<artifactId>oss-parent</artifactId>
@@ -171,6 +171,14 @@
 						<property>
 							<name>accountNumber</name>
 							<value>${accountNumber}</value>
+						</property>
+						<property>
+							<name>accessShared</name>
+							<value>${accessShared}</value>
+						</property>
+						<property>
+							<name>accessSecret</name>
+							<value>${accessSecret}</value>
 						</property>
 						<property>
 							<name>apiAccessKeyShared</name>
