@@ -2,7 +2,7 @@ package org.dasein.cloud.tier3.compute.vm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
@@ -10,7 +10,6 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
-import org.dasein.cloud.ProviderContext;
 import org.dasein.cloud.Requirement;
 import org.dasein.cloud.ResourceStatus;
 import org.dasein.cloud.Tag;
@@ -122,7 +121,7 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public String getConsoleOutput(String vmId) throws InternalException, CloudException {
-		throw new OperationNotSupportedException();
+		return null;
 	}
 
 	@Override
@@ -304,13 +303,13 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public VmStatistics getVMStatistics(String vmId, long from, long to) throws InternalException, CloudException {
-		throw new OperationNotSupportedException();
+		return new VmStatistics();
 	}
 
 	@Override
 	public Iterable<VmStatistics> getVMStatisticsForPeriod(String vmId, long from, long to) throws InternalException,
 			CloudException {
-		throw new OperationNotSupportedException();
+		return Collections.emptyList();
 	}
 
 	@Override
@@ -382,37 +381,27 @@ public class Tier3VM implements VirtualMachineSupport {
 	public VirtualMachine launch(VMLaunchOptions withLaunchOptions) throws CloudException, InternalException {
 		APITrace.begin(provider, "launch");
 		try {
-			ProviderContext ctx = provider.getContext();
-			if (ctx == null) {
-				throw new CloudException("No context was established for this request");
-			}
 			MachineImage template = provider.getComputeServices().getImageSupport()
 					.getImage(withLaunchOptions.getMachineImageId());
-
 			if (template == null) {
-				throw new InternalException("No such image: " + withLaunchOptions.getMachineImageId());
+				throw new CloudException("No such image: " + withLaunchOptions.getMachineImageId());
 			}
+			
+			VirtualMachineProduct product = getProduct(withLaunchOptions.getStandardProductId());
+			if (withLaunchOptions.getStandardProductId() == null && product == null) {
+				throw new CloudException("No such product: " + withLaunchOptions.getStandardProductId());
+			}
+			
 			APIHandler method = new APIHandler(provider);
 			JSONObject post = new JSONObject();
 
-			post.put("AccountAlias", provider.getContext().getAccountNumber());
 			if (withLaunchOptions.getDataCenterId() != null) {
 				post.put("LocationAlias", withLaunchOptions.getDataCenterId());
 			}
 			post.put("Template", template.getName());
-			int cpu = 1;
-			if (template.getTags().containsKey("Cpu") && !template.getTag("Cpu").equals("0")) {
-				cpu = Integer.parseInt(template.getTag("Cpu").toString());
-			}
-			post.put("Cpu", cpu);
-			int memoryGb = 1;
-			if (template.getTags().containsKey("MemoryGB") && !template.getTag("MemoryGB").equals("0")) {
-				memoryGb = Integer.parseInt(template.getTag("MemoryGB").toString());
-			}
-			post.put("MemoryGB", memoryGb);
-
+			post.put("Cpu", product.getCpuCount());
+			post.put("MemoryGB", product.getRamSize().convertTo(Storage.GIGABYTE).intValue());
 			post.put("HardwareGroupID", getDefaultHardwareGroupId(withLaunchOptions.getDataCenterId()));
-
 			post.put("Alias", validateName(withLaunchOptions.getHostName()));
 			post.put("Description", withLaunchOptions.getDescription());
 			if (withLaunchOptions.getMetaData().containsKey("ServerType")) {
@@ -679,11 +668,15 @@ public class Tier3VM implements VirtualMachineSupport {
 
 	@Override
 	public void resume(String vmId) throws CloudException, InternalException {
-		APITrace.begin(provider, "suspend");
+		APITrace.begin(provider, "resume");
 		try {
+			VirtualMachine vm = getVirtualMachine(vmId);
 			APIHandler method = new APIHandler(provider);
 			JSONObject json = new JSONObject();
 			json.put("Name", vmId);
+			if (vm.getProviderDataCenterId() != null) {
+				json.put("HardwareGroupID", getDefaultHardwareGroupId(vm.getProviderDataCenterId()));
+			}
 			APIResponse apiResponse = method.post("Server/RestoreServer/JSON", json.toString());
 			apiResponse.validate();
 		} catch (JSONException e) {
@@ -981,7 +974,10 @@ public class Tier3VM implements VirtualMachineSupport {
 
 			@Override
 			public boolean canUnpause(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.PAUSED) {
+					return true;
+				}
+				return false;
 			}
 
 			@Override
@@ -991,32 +987,50 @@ public class Tier3VM implements VirtualMachineSupport {
 
 			@Override
 			public boolean canSuspend(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.RUNNING) {
+					return true;
+				}
+				return false;
 			}
 
 			@Override
 			public boolean canStop(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.RUNNING) {
+					return true;
+				}
+				return false;
 			}
 
 			@Override
 			public boolean canStart(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.STOPPED) {
+					return true;
+				}
+				return false;
 			}
 
 			@Override
 			public boolean canResume(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.SUSPENDED) {
+					return true;
+				}
+				return false;
 			}
 
 			@Override
 			public boolean canReboot(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.RUNNING) {
+					return true;
+				}
+				return false;
 			}
 
 			@Override
 			public boolean canPause(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.RUNNING) {
+					return true;
+				}
+				return false;
 			}
 
 			@Override
@@ -1026,7 +1040,10 @@ public class Tier3VM implements VirtualMachineSupport {
 
 			@Override
 			public boolean canAlter(VmState fromState) throws CloudException, InternalException {
-				return true;
+				if (fromState == VmState.RUNNING) {
+					return true;
+				}
+				return false;
 			}
 		};
 	}
