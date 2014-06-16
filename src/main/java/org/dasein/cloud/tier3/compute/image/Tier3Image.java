@@ -33,549 +33,552 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class Tier3Image implements MachineImageSupport {
-	static private final Logger logger = Tier3.getLogger(Tier3Image.class);
-	private Tier3 provider;
+    static private final Logger logger = Tier3.getLogger(Tier3Image.class);
+    private Tier3 provider;
 
-	public Tier3Image(Tier3 provider) {
-		this.provider = provider;
-	}
+    public Tier3Image(Tier3 provider) {
+        this.provider = provider;
+    }
 
-	@Override
-	public String[] mapServiceAction(ServiceAction action) {
-		return new String[0];
-	}
+    @Override
+    public String[] mapServiceAction(ServiceAction action) {
+        return new String[0];
+    }
 
-	@Override
-	public void addImageShare(String providerImageId, String accountNumber) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public void addImageShare(String providerImageId, String accountNumber) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public void addPublicShare(String providerImageId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public void addPublicShare(String providerImageId) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public String bundleVirtualMachine(String virtualMachineId, MachineImageFormat format, String bucket, String name)
-			throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public String bundleVirtualMachine(String virtualMachineId, MachineImageFormat format, String bucket, String name)
+            throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public void bundleVirtualMachineAsync(String virtualMachineId, MachineImageFormat format, String bucket,
-			String name, AsynchronousTask<String> trackingTask) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public void bundleVirtualMachineAsync(String virtualMachineId, MachineImageFormat format, String bucket,
+            String name, AsynchronousTask<String> trackingTask) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public MachineImage captureImage(ImageCreateOptions options) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-//		if (!options.getMetaData().containsKey("Password")) {
-//			throw new CloudException("MetaData entry for 'Password' required");
-//		}
-//		APITrace.begin(provider, "captureImage");
-//		try {
-//			APIHandler method = new APIHandler(provider);
-//			JSONObject post = new JSONObject();
-//			post.put("Name", options.getVirtualMachineId());
-//			post.put("Password", options.getMetaData().get("Password"));
-//			post.put("TemplateAlias", options.getName());
-//			APIResponse response = method.post("Server/ConvertServerToTemplate/JSON", post.toString());
-//			response.validate();
-//
-//			JSONObject deployStatus = provider.getDeploymentStatus(response.getJSON().getInt("RequestID"));
-//			MachineImage image = toMachineImage(deployStatus);
-//			return image;
-//
-//		} catch (JSONException e) {
-//			throw new CloudException(e);
-//		} finally {
-//			APITrace.end();
-//		}
-	}
+    @Override
+    public MachineImage captureImage(ImageCreateOptions options) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+        // if (!options.getMetaData().containsKey("Password")) {
+        // throw new CloudException("MetaData entry for 'Password' required");
+        // }
+        // APITrace.begin(provider, "captureImage");
+        // try {
+        // APIHandler method = new APIHandler(provider);
+        // JSONObject post = new JSONObject();
+        // post.put("Name", options.getVirtualMachineId());
+        // post.put("Password", options.getMetaData().get("Password"));
+        // post.put("TemplateAlias", options.getName());
+        // APIResponse response =
+        // method.post("Server/ConvertServerToTemplate/JSON", post.toString());
+        // response.validate();
+        //
+        // JSONObject deployStatus =
+        // provider.getDeploymentStatus(response.getJSON().getInt("RequestID"));
+        // MachineImage image = toMachineImage(deployStatus);
+        // return image;
+        //
+        // } catch (JSONException e) {
+        // throw new CloudException(e);
+        // } finally {
+        // APITrace.end();
+        // }
+    }
 
-	@Override
-	public void captureImageAsync(ImageCreateOptions options, AsynchronousTask<MachineImage> taskTracker)
-			throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-//		captureImage(options);
-	}
+    @Override
+    public void captureImageAsync(ImageCreateOptions options, AsynchronousTask<MachineImage> taskTracker)
+            throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+        // captureImage(options);
+    }
 
-	@Override
-	public MachineImage getImage(String providerImageId) throws CloudException, InternalException {
-		if (providerImageId == null) {
-			return null;
-		}
-		for (MachineImage image : listImages((ImageFilterOptions) null)) {
-			if (providerImageId.equals(image.getProviderMachineImageId())) {
-				return image;
-			}
-		}
-		return null;
-	}
+    @Override
+    public MachineImage getImage(String providerImageId) throws CloudException, InternalException {
+        if (providerImageId == null) {
+            return null;
+        }
+        for (MachineImage image : listImages((ImageFilterOptions) null)) {
+            if (providerImageId.equals(image.getProviderMachineImageId())) {
+                return image;
+            }
+        }
+        return null;
+    }
 
-	@Override
-	public MachineImage getMachineImage(String providerImageId) throws CloudException, InternalException {
-		return getImage(providerImageId);
-	}
+    @Override
+    public MachineImage getMachineImage(String providerImageId) throws CloudException, InternalException {
+        return getImage(providerImageId);
+    }
 
-	@Override
-	public String getProviderTermForImage(Locale locale) {
-		try {
-			return getCapabilities().getProviderTermForImage(locale, null);
-		} catch (CloudException e) {
-		} catch (InternalException e) {
-		}
-		return "template";
-	}
+    @Override
+    public String getProviderTermForImage(Locale locale) {
+        try {
+            return getCapabilities().getProviderTermForImage(locale, null);
+        } catch (CloudException e) {
+        } catch (InternalException e) {
+        }
+        return "template";
+    }
 
-	@Override
-	public String getProviderTermForImage(Locale locale, ImageClass cls) {
-		switch (cls) {
-		case KERNEL:
-			return "n/a";
-		case RAMDISK:
-			return "n/a";
-		default:
-			break;
-		}
-		return getProviderTermForImage(locale);
-	}
+    @Override
+    public String getProviderTermForImage(Locale locale, ImageClass cls) {
+        switch (cls) {
+        case KERNEL:
+            return "n/a";
+        case RAMDISK:
+            return "n/a";
+        default:
+            break;
+        }
+        return getProviderTermForImage(locale);
+    }
 
-	@Override
-	public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
-		try {
-			return getCapabilities().getProviderTermForCustomImage(locale, cls);
-		} catch (CloudException e) {
-		} catch (InternalException e) {
-		}
-		return "template";
-	}
+    @Override
+    public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
+        try {
+            return getCapabilities().getProviderTermForCustomImage(locale, cls);
+        } catch (CloudException e) {
+        } catch (InternalException e) {
+        }
+        return "template";
+    }
 
-	@Override
-	public boolean hasPublicLibrary() {
-		return false;
-	}
+    @Override
+    public boolean hasPublicLibrary() {
+        return false;
+    }
 
-	@Override
-	public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-		return getCapabilities().identifyLocalBundlingRequirement();
-	}
+    @Override
+    public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
+        return getCapabilities().identifyLocalBundlingRequirement();
+    }
 
-	@Override
-	public AsynchronousTask<String> imageVirtualMachine(String vmId, String name, String description)
-			throws CloudException, InternalException {
-		throw new CloudException("Utilize the captureImage method to create server templates");
-	}
+    @Override
+    public AsynchronousTask<String> imageVirtualMachine(String vmId, String name, String description)
+            throws CloudException, InternalException {
+        throw new CloudException("Utilize the captureImage method to create server templates");
+    }
 
-	@Override
-	public boolean isImageSharedWithPublic(String providerImageId) throws CloudException, InternalException {
-		return false;
-	}
+    @Override
+    public boolean isImageSharedWithPublic(String providerImageId) throws CloudException, InternalException {
+        return false;
+    }
 
-	@Override
-	public boolean isSubscribed() throws CloudException, InternalException {
-		return false;
-	}
+    @Override
+    public boolean isSubscribed() throws CloudException, InternalException {
+        return false;
+    }
 
-	@Override
-	public Iterable<ResourceStatus> listImageStatus(ImageClass cls) throws CloudException, InternalException {
-		if (cls != null && cls != ImageClass.MACHINE) {
-			return Collections.emptyList();
-		}
-		APITrace.begin(provider, "listImageStatus");
-		try {
-			APIHandler method = new APIHandler(provider);
-			APIResponse response = method.post("Server/GetServerTemplates/JSON", "");
-			response.validate();
-			
-			ArrayList<ResourceStatus> resources = new ArrayList<ResourceStatus>();
+    @Override
+    public Iterable<ResourceStatus> listImageStatus(ImageClass cls) throws CloudException, InternalException {
+        if (cls != null && cls != ImageClass.MACHINE) {
+            return Collections.emptyList();
+        }
+        APITrace.begin(provider, "listImageStatus");
+        try {
+            APIHandler method = new APIHandler(provider);
+            APIResponse response = method.post("Server/GetServerTemplates/JSON", "");
+            response.validate();
 
-			JSONObject json = response.getJSON();
-			if (json.has("Templates")) {
-				for (int i = 0; i < json.getJSONArray("Templates").length(); i++) {
-					resources.add(new ResourceStatus(json.getJSONArray("Templates").getJSONObject(i).getString("ID"),
-							MachineImageState.ACTIVE));
-				}
-			}
+            ArrayList<ResourceStatus> resources = new ArrayList<ResourceStatus>();
 
-			return resources;
-		} catch (JSONException e) {
-			throw new CloudException(e);
-		} finally {
-			APITrace.end();
-		}
-	}
+            JSONObject json = response.getJSON();
+            if (json.has("Templates")) {
+                for (int i = 0; i < json.getJSONArray("Templates").length(); i++) {
+                    resources.add(new ResourceStatus(json.getJSONArray("Templates").getJSONObject(i).getString("ID"),
+                            MachineImageState.ACTIVE));
+                }
+            }
 
-	@Override
-	public Iterable<MachineImage> listImages(ImageFilterOptions options) throws CloudException, InternalException {
-		APITrace.begin(provider, "listImages");
-		try {
-			APIHandler method = new APIHandler(provider);
-			APIResponse response = method.post("Server/GetServerTemplates/JSON", "");
-			response.validate();
-			
-			ArrayList<MachineImage> images = new ArrayList<MachineImage>();
+            return resources;
+        } catch (JSONException e) {
+            throw new CloudException(e);
+        } finally {
+            APITrace.end();
+        }
+    }
 
-			JSONObject json = response.getJSON();
-			if (json.has("Templates")) {
-				for (int i = 0; i < json.getJSONArray("Templates").length(); i++) {
-					MachineImage image = toMachineImage(json.getJSONArray("Templates").getJSONObject(i));
-					if (options == null) {
-						images.add(image);
-					} else {
-						if (image != null && options.matches(image)) {
-							images.add(image);
-						}
-					}
-				}
-			}
+    @Override
+    public Iterable<MachineImage> listImages(ImageFilterOptions options) throws CloudException, InternalException {
+        APITrace.begin(provider, "listImages");
+        try {
+            APIHandler method = new APIHandler(provider);
+            APIResponse response = method.post("Server/GetServerTemplates/JSON", "");
+            response.validate();
 
-			return images;
-		} catch (JSONException e) {
-			throw new CloudException(e);
-		} finally {
-			APITrace.end();
-		}
-	}
+            ArrayList<MachineImage> images = new ArrayList<MachineImage>();
 
-	@Override
-	public Iterable<MachineImage> listImages(ImageClass cls) throws CloudException, InternalException {
-		if (cls != null && cls != ImageClass.MACHINE) {
-			return Collections.emptyList();
-		}
-		return listImages((ImageFilterOptions) null);
-	}
+            JSONObject json = response.getJSON();
+            if (json.has("Templates")) {
+                for (int i = 0; i < json.getJSONArray("Templates").length(); i++) {
+                    MachineImage image = toMachineImage(json.getJSONArray("Templates").getJSONObject(i));
+                    if (options == null) {
+                        images.add(image);
+                    } else {
+                        if (image != null && options.matches(image)) {
+                            images.add(image);
+                        }
+                    }
+                }
+            }
 
-	private MachineImage toMachineImage(JSONObject ob) throws CloudException, InternalException {
-		if (ob == null) {
-			return null;
-		}
-		try {
-			MachineImage image = MachineImage.getMachineImageInstance(provider.getContext().getAccountNumber(), "*", ob
-					.getString("ID"), MachineImageState.ACTIVE, ob.getString("Name"), ob.getString("Description"),
-					provider.getComputeTranslations().toArchitecture(ob.getString("Name")), provider
-							.getComputeTranslations().toPlatform(ob.getString("Name").toLowerCase()));
+            return images;
+        } catch (JSONException e) {
+            throw new CloudException(e);
+        } finally {
+            APITrace.end();
+        }
+    }
 
-			if (ob.has("Cpu")) {
-				image.setTag("Cpu", ob.get("Cpu").toString());
-			}
-			if (ob.has("MemoryGB")) {
-				image.setTag("MemoryGB", ob.get("MemoryGB").toString());
-			}
-			if (ob.has("TotalDiskSpaceGB")) {
-				image.setTag("TotalDiskSpaceGB", ob.get("TotalDiskSpaceGB").toString());
-			}
-			if (ob.has("OperatingSystem")) {
-				image.setTag("OperatingSystem", ob.get("OperatingSystem").toString());
-			}
-			if (ob.has("RequestID")) {
-				image.setTag("ResourceID", ob.get("ResourceID").toString());
-			}
+    @Override
+    public Iterable<MachineImage> listImages(ImageClass cls) throws CloudException, InternalException {
+        if (cls != null && cls != ImageClass.MACHINE) {
+            return Collections.emptyList();
+        }
+        return listImages((ImageFilterOptions) null);
+    }
 
-			return image;
-		} catch (JSONException e) {
-			throw new CloudException(e);
-		}
-	}
+    private MachineImage toMachineImage(JSONObject ob) throws CloudException, InternalException {
+        if (ob == null) {
+            return null;
+        }
+        try {
+            MachineImage image = MachineImage.getMachineImageInstance(provider.getContext().getAccountNumber(), "*", ob
+                    .getString("ID"), MachineImageState.ACTIVE, ob.getString("Name"), ob.getString("Description"),
+                    provider.getComputeTranslations().toArchitecture(ob.getString("Name")), provider
+                            .getComputeTranslations().toPlatform(ob.getString("Name").toLowerCase()));
 
-	@Override
-	public Iterable<MachineImage> listImages(ImageClass cls, String ownedBy) throws CloudException, InternalException {
-		return listImages(cls);
-	}
+            if (ob.has("Cpu")) {
+                image.setTag("Cpu", ob.get("Cpu").toString());
+            }
+            if (ob.has("MemoryGB")) {
+                image.setTag("MemoryGB", ob.get("MemoryGB").toString());
+            }
+            if (ob.has("TotalDiskSpaceGB")) {
+                image.setTag("TotalDiskSpaceGB", ob.get("TotalDiskSpaceGB").toString());
+            }
+            if (ob.has("OperatingSystem")) {
+                image.setTag("OperatingSystem", ob.get("OperatingSystem").toString());
+            }
+            if (ob.has("RequestID")) {
+                image.setTag("ResourceID", ob.get("ResourceID").toString());
+            }
 
-	@Override
-	public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
-		return getCapabilities().listSupportedFormats();
-	}
+            return image;
+        } catch (JSONException e) {
+            throw new CloudException(e);
+        }
+    }
 
-	@Override
-	public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException, InternalException {
-		return getCapabilities().listSupportedFormatsForBundling();
-	}
+    @Override
+    public Iterable<MachineImage> listImages(ImageClass cls, String ownedBy) throws CloudException, InternalException {
+        return listImages(cls);
+    }
 
-	@Override
-	public Iterable<MachineImage> listMachineImages() throws CloudException, InternalException {
-		return listImages((ImageFilterOptions) null);
-	}
+    @Override
+    public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
+        return getCapabilities().listSupportedFormats();
+    }
 
-	@Override
-	public Iterable<MachineImage> listMachineImagesOwnedBy(String accountId) throws CloudException, InternalException {
-		return listImages((ImageFilterOptions) null);
-	}
+    @Override
+    public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException, InternalException {
+        return getCapabilities().listSupportedFormatsForBundling();
+    }
 
-	@Override
-	public Iterable<String> listShares(String providerImageId) throws CloudException, InternalException {
-		return Collections.emptyList();
-	}
+    @Override
+    public Iterable<MachineImage> listMachineImages() throws CloudException, InternalException {
+        return listImages((ImageFilterOptions) null);
+    }
 
-	@Override
-	public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
-		return getCapabilities().listSupportedImageClasses();
-	}
+    @Override
+    public Iterable<MachineImage> listMachineImagesOwnedBy(String accountId) throws CloudException, InternalException {
+        return listImages((ImageFilterOptions) null);
+    }
 
-	@Override
-	public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
-		return getCapabilities().listSupportedImageTypes();
-	}
+    @Override
+    public Iterable<String> listShares(String providerImageId) throws CloudException, InternalException {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public MachineImage registerImageBundle(ImageCreateOptions options) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
+        return getCapabilities().listSupportedImageClasses();
+    }
 
-	@Override
-	public void remove(String providerImageId) throws CloudException, InternalException {
-		APITrace.begin(provider, "remove");
-		try {
-			MachineImage image = getImage(providerImageId);
+    @Override
+    public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
+        return getCapabilities().listSupportedImageTypes();
+    }
 
-			APIHandler method = new APIHandler(provider);
-			JSONObject post = new JSONObject();
-			post.put("Name", image.getName());
-			APIResponse response = method.post("Server/DeleteTemplate/JSON", post.toString());
-			response.validate();
-			
-		} catch (JSONException e) {
-			throw new CloudException(e);
-		} finally {
-			APITrace.end();
-		}
-	}
+    @Override
+    public MachineImage registerImageBundle(ImageCreateOptions options) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public void remove(String providerImageId, boolean checkState) throws CloudException, InternalException {
-		remove(providerImageId);
-	}
+    @Override
+    public void remove(String providerImageId) throws CloudException, InternalException {
+        APITrace.begin(provider, "remove");
+        try {
+            MachineImage image = getImage(providerImageId);
 
-	@Override
-	public void removeAllImageShares(String providerImageId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+            APIHandler method = new APIHandler(provider);
+            JSONObject post = new JSONObject();
+            post.put("Name", image.getName());
+            APIResponse response = method.post("Server/DeleteTemplate/JSON", post.toString());
+            response.validate();
 
-	@Override
-	public void removeImageShare(String providerImageId, String accountNumber) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+        } catch (JSONException e) {
+            throw new CloudException(e);
+        } finally {
+            APITrace.end();
+        }
+    }
 
-	@Override
-	public void removePublicShare(String providerImageId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public void remove(String providerImageId, boolean checkState) throws CloudException, InternalException {
+        remove(providerImageId);
+    }
 
-	@Override
-	public Iterable<MachineImage> searchImages(String accountNumber, String keyword, Platform platform,
-			Architecture architecture, ImageClass... imageClasses) throws CloudException, InternalException {
-		ArrayList<MachineImage> images = new ArrayList<MachineImage>();
-		for (MachineImage image : listImages((ImageFilterOptions) null)) {
-			for (int i = 0; i < imageClasses.length; i++) {
-				// test keyword
-				if (keyword != null) {
-					if (image.getName() != null) {
-						if (image.getName().contains(keyword)) {
-							if (!images.contains(image)) {
-								images.add(image);
-							}
-						}
-					}
-					if (image.getDescription() != null) {
-						if (image.getDescription().contains(keyword)) {
-							if (!images.contains(image)) {
-								images.add(image);
-							}
-						}
-					}
-					if (image.getTags() != null) {
-						for (String value : image.getTags().values()) {
-							if (value != null && value.contains(keyword)) {
-								images.add(image);
-							}
-						}
-					}
-				}
+    @Override
+    public void removeAllImageShares(String providerImageId) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-				// test platform
-				if (platform != null && image.getPlatform().compareTo(platform) == 0) {
-					if (!images.contains(image)) {
-						images.add(image);
-					}
-				}
+    @Override
+    public void removeImageShare(String providerImageId, String accountNumber) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-				// test architecture
-				if (architecture != null && image.getArchitecture().compareTo(architecture) == 0) {
-					if (!images.contains(image)) {
-						images.add(image);
-					}
-				}
+    @Override
+    public void removePublicShare(String providerImageId) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-				// test image class
-				if (imageClasses[i] == image.getImageClass()) {
-					if (!images.contains(image)) {
-						images.add(image);
-					}
-				}
-			}
-		}
-		return images;
-	}
+    @Override
+    public Iterable<MachineImage> searchImages(String accountNumber, String keyword, Platform platform,
+            Architecture architecture, ImageClass... imageClasses) throws CloudException, InternalException {
+        ArrayList<MachineImage> images = new ArrayList<MachineImage>();
+        for (MachineImage image : listImages((ImageFilterOptions) null)) {
+            for (int i = 0; i < imageClasses.length; i++) {
+                // test keyword
+                if (keyword != null) {
+                    if (image.getName() != null) {
+                        if (image.getName().contains(keyword)) {
+                            if (!images.contains(image)) {
+                                images.add(image);
+                            }
+                        }
+                    }
+                    if (image.getDescription() != null) {
+                        if (image.getDescription().contains(keyword)) {
+                            if (!images.contains(image)) {
+                                images.add(image);
+                            }
+                        }
+                    }
+                    if (image.getTags() != null) {
+                        for (String value : image.getTags().values()) {
+                            if (value != null && value.contains(keyword)) {
+                                images.add(image);
+                            }
+                        }
+                    }
+                }
 
-	@Override
-	public Iterable<MachineImage> searchMachineImages(String keyword, Platform platform, Architecture architecture)
-			throws CloudException, InternalException {
-		return searchImages(null, keyword, platform, architecture, (ImageClass) null);
-	}
+                // test platform
+                if (platform != null && image.getPlatform().compareTo(platform) == 0) {
+                    if (!images.contains(image)) {
+                        images.add(image);
+                    }
+                }
 
-	@Override
-	public Iterable<MachineImage> searchPublicImages(ImageFilterOptions options) throws InternalException,
-			CloudException {
-		return Collections.emptyList();
-	}
+                // test architecture
+                if (architecture != null && image.getArchitecture().compareTo(architecture) == 0) {
+                    if (!images.contains(image)) {
+                        images.add(image);
+                    }
+                }
 
-	@Override
-	public Iterable<MachineImage> searchPublicImages(String keyword, Platform platform, Architecture architecture,
-			ImageClass... imageClasses) throws CloudException, InternalException {
-		return Collections.emptyList();
-	}
+                // test image class
+                if (imageClasses[i] == image.getImageClass()) {
+                    if (!images.contains(image)) {
+                        images.add(image);
+                    }
+                }
+            }
+        }
+        return images;
+    }
 
-	@Override
-	public void shareMachineImage(String providerImageId, String withAccountId, boolean allow) throws CloudException,
-			InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public Iterable<MachineImage> searchMachineImages(String keyword, Platform platform, Architecture architecture)
+            throws CloudException, InternalException {
+        return searchImages(null, keyword, platform, architecture, (ImageClass) null);
+    }
 
-	@Override
-	public boolean supportsCustomImages() throws CloudException, InternalException {
-		return getCapabilities().supportsImageCapture(null);
-	}
+    @Override
+    public Iterable<MachineImage> searchPublicImages(ImageFilterOptions options) throws InternalException,
+            CloudException {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public boolean supportsDirectImageUpload() throws CloudException, InternalException {
-		return getCapabilities().supportsDirectImageUpload();
-	}
+    @Override
+    public Iterable<MachineImage> searchPublicImages(String keyword, Platform platform, Architecture architecture,
+            ImageClass... imageClasses) throws CloudException, InternalException {
+        return Collections.emptyList();
+    }
 
-	@Override
-	public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
-		return getCapabilities().supportsImageCapture(type);
-	}
+    @Override
+    public void shareMachineImage(String providerImageId, String withAccountId, boolean allow) throws CloudException,
+            InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public boolean supportsImageSharing() throws CloudException, InternalException {
-		return getCapabilities().supportsImageSharing();
-	}
+    @Override
+    public boolean supportsCustomImages() throws CloudException, InternalException {
+        return getCapabilities().supportsImageCapture(null);
+    }
 
-	@Override
-	public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
-		return getCapabilities().supportsImageSharingWithPublic();
-	}
+    @Override
+    public boolean supportsDirectImageUpload() throws CloudException, InternalException {
+        return getCapabilities().supportsDirectImageUpload();
+    }
 
-	@Override
-	public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
-		return getCapabilities().supportsPublicLibrary(cls);
-	}
+    @Override
+    public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
+        return getCapabilities().supportsImageCapture(type);
+    }
 
-	@Override
-	public void updateTags(String imageId, Tag... tags) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public boolean supportsImageSharing() throws CloudException, InternalException {
+        return getCapabilities().supportsImageSharing();
+    }
 
-	@Override
-	public void updateTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
+        return getCapabilities().supportsImageSharingWithPublic();
+    }
 
-	@Override
-	public void removeTags(String imageId, Tag... tags) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
+        return getCapabilities().supportsPublicLibrary(cls);
+    }
 
-	@Override
-	public void removeTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public void updateTags(String imageId, Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public ImageCapabilities getCapabilities() throws CloudException, InternalException {
-		return new ImageCapabilities() {
-			
-			@Override
-			public String getRegionId() {
-				return provider.getContext().getRegionId();
-			}
-			
-			@Override
-			public String getAccountNumber() {
-				return provider.getContext().getAccountNumber();
-			}
-			
-			@Override
-			public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
-				return false;
-			}
-			
-			@Override
-			public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
-				return false;
-			}
-			
-			@Override
-			public boolean supportsImageSharing() throws CloudException, InternalException {
-				return false;
-			}
-			
-			@Override
-			public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
-				return false;
-			}
-			
-			@Override
-			public boolean supportsDirectImageUpload() throws CloudException, InternalException {
-				return false;
-			}
-			
-			@Override
-			public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
-				return Collections.singletonList(MachineImageType.VOLUME);
-			}
-			
-			@Override
-			public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
-				return Collections.singletonList(ImageClass.MACHINE);
-			}
-			
-			@Override
-			public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException, InternalException {
-				return Collections.emptyList();
-			}
-			
-			@Override
-			public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
-				return Collections.emptyList();
-			}
-			
-			@Override
-			public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-				return Requirement.REQUIRED;
-			}
-			
-			@Override
-			public String getProviderTermForImage(Locale locale, ImageClass cls) {
-				return "template";
-			}
-			
-			@Override
-			public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
-				return getProviderTermForImage(locale, cls);
-			}
-			
-			@Override
-			public boolean canImage(VmState fromState) throws CloudException, InternalException {
-				return false;
-			}
-			
-			@Override
-			public boolean canBundle(VmState fromState) throws CloudException, InternalException {
-				return false;
-			}
-		};
-	}
+    @Override
+    public void updateTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
+
+    @Override
+    public void removeTags(String imageId, Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
+
+    @Override
+    public void removeTags(String[] imageIds, Tag... tags) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
+
+    @Override
+    public ImageCapabilities getCapabilities() throws CloudException, InternalException {
+        return new ImageCapabilities() {
+
+            @Override
+            public String getRegionId() {
+                return provider.getContext().getRegionId();
+            }
+
+            @Override
+            public String getAccountNumber() {
+                return provider.getContext().getAccountNumber();
+            }
+
+            @Override
+            public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
+                return false;
+            }
+
+            @Override
+            public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
+                return false;
+            }
+
+            @Override
+            public boolean supportsImageSharing() throws CloudException, InternalException {
+                return false;
+            }
+
+            @Override
+            public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
+                return false;
+            }
+
+            @Override
+            public boolean supportsDirectImageUpload() throws CloudException, InternalException {
+                return false;
+            }
+
+            @Override
+            public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
+                return Collections.singletonList(MachineImageType.VOLUME);
+            }
+
+            @Override
+            public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
+                return Collections.singletonList(ImageClass.MACHINE);
+            }
+
+            @Override
+            public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException,
+                    InternalException {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
+                return Requirement.REQUIRED;
+            }
+
+            @Override
+            public String getProviderTermForImage(Locale locale, ImageClass cls) {
+                return "template";
+            }
+
+            @Override
+            public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
+                return getProviderTermForImage(locale, cls);
+            }
+
+            @Override
+            public boolean canImage(VmState fromState) throws CloudException, InternalException {
+                return false;
+            }
+
+            @Override
+            public boolean canBundle(VmState fromState) throws CloudException, InternalException {
+                return false;
+            }
+        };
+    }
 }

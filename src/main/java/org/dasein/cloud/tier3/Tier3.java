@@ -53,244 +53,244 @@ import org.json.JSONObject;
  * @since 2013.01
  */
 public class Tier3 extends AbstractCloud {
-	static private final Logger logger = getLogger(Tier3.class);
+    static private final Logger logger = getLogger(Tier3.class);
 
-	static private @Nonnull
-	String getLastItem(@Nonnull String name) {
-		int idx = name.lastIndexOf('.');
+    static private @Nonnull
+    String getLastItem(@Nonnull String name) {
+        int idx = name.lastIndexOf('.');
 
-		if (idx < 0) {
-			return name;
-		} else if (idx == (name.length() - 1)) {
-			return "";
-		}
-		return name.substring(idx + 1);
-	}
+        if (idx < 0) {
+            return name;
+        } else if (idx == (name.length() - 1)) {
+            return "";
+        }
+        return name.substring(idx + 1);
+    }
 
-	static public @Nonnull
-	Logger getLogger(@Nonnull Class<?> cls) {
-		String pkg = getLastItem(cls.getPackage().getName());
+    static public @Nonnull
+    Logger getLogger(@Nonnull Class<?> cls) {
+        String pkg = getLastItem(cls.getPackage().getName());
 
-		if (pkg.equals("centurylink")) {
-			pkg = "";
-		} else {
-			pkg = pkg + ".";
-		}
-		return Logger.getLogger("dasein.cloud.centurylink.std." + pkg + getLastItem(cls.getName()));
-	}
+        if (pkg.equals("centurylink")) {
+            pkg = "";
+        } else {
+            pkg = pkg + ".";
+        }
+        return Logger.getLogger("dasein.cloud.centurylink.std." + pkg + getLastItem(cls.getName()));
+    }
 
-	static public @Nonnull
-	Logger getWireLogger(@Nonnull Class<?> cls) {
-		return Logger.getLogger("dasein.cloud.centurylink.wire." + getLastItem(cls.getPackage().getName()) + "."
-				+ getLastItem(cls.getName()));
-	}
+    static public @Nonnull
+    Logger getWireLogger(@Nonnull Class<?> cls) {
+        return Logger.getLogger("dasein.cloud.centurylink.wire." + getLastItem(cls.getPackage().getName()) + "."
+                + getLastItem(cls.getName()));
+    }
 
-	public Tier3() {
-	}
+    public Tier3() {
+    }
 
-	@Override
-	public @Nonnull
-	String getCloudName() {
-		ProviderContext ctx = getContext();
-		String name = (ctx == null ? null : ctx.getCloudName());
+    @Override
+    public @Nonnull
+    String getCloudName() {
+        ProviderContext ctx = getContext();
+        String name = (ctx == null ? null : ctx.getCloudName());
 
-		return (name == null ? "CenturyLink" : name);
-	}
+        return (name == null ? "CenturyLink" : name);
+    }
 
-	@Override
-	public @Nonnull
-	DataCenters getDataCenterServices() {
-		return new DataCenters(this);
-	}
+    @Override
+    public @Nonnull
+    DataCenters getDataCenterServices() {
+        return new DataCenters(this);
+    }
 
-	@Override
-	public @Nonnull
-	String getProviderName() {
-		ProviderContext ctx = getContext();
-		String name = (ctx == null ? null : ctx.getProviderName());
+    @Override
+    public @Nonnull
+    String getProviderName() {
+        ProviderContext ctx = getContext();
+        String name = (ctx == null ? null : ctx.getProviderName());
 
-		return (name == null ? "CenturyLink" : name);
-	}
+        return (name == null ? "CenturyLink" : name);
+    }
 
-	@Override
-	public ComputeServices getComputeServices() {
-		return new Tier3ComputeServices(this);
-	}
+    @Override
+    public ComputeServices getComputeServices() {
+        return new Tier3ComputeServices(this);
+    }
 
-	public Tier3ComputeTranslations getComputeTranslations() {
-		return new Tier3ComputeTranslations();
-	}
+    public Tier3ComputeTranslations getComputeTranslations() {
+        return new Tier3ComputeTranslations();
+    }
 
-	@Override
-	public NetworkServices getNetworkServices() {
-		return new Tier3NetworkServices(this);
-	}
+    @Override
+    public NetworkServices getNetworkServices() {
+        return new Tier3NetworkServices(this);
+    }
 
-	public Tier3NetworkTranslations getNetworkTranslations() {
-		return new Tier3NetworkTranslations();
-	}
+    public Tier3NetworkTranslations getNetworkTranslations() {
+        return new Tier3NetworkTranslations();
+    }
 
-	@Override
-	public @Nullable
-	String testContext() {
-		if (logger.isTraceEnabled()) {
-			logger.trace("ENTER - " + Tier3.class.getName() + ".testContext()");
-		}
-		try {
-			ProviderContext ctx = getContext();
+    @Override
+    public @Nullable
+    String testContext() {
+        if (logger.isTraceEnabled()) {
+            logger.trace("ENTER - " + Tier3.class.getName() + ".testContext()");
+        }
+        try {
+            ProviderContext ctx = getContext();
 
-			if (ctx == null) {
-				logger.warn("No context was provided for testing");
-				return null;
-			}
-			if (ctx.getAccountNumber() != null && ctx.getAccountNumber().length() > 4) {
-				logger.warn("Invalid account number");
-				return null;
-			}
-			try {
-				JSONObject json = new JSONObject();
-				json.put("AccountAlias", ctx.getAccountNumber());
-				APIResponse response = new APIHandler(this).post("Account/GetAccountDetails/JSON", json.toString());
-				response.validate();
-				if (response.getJSON().getString("AccountDetails") != null) {
-					return response.getJSON().getJSONObject("AccountDetails").getString("AccountAlias");
-				}
-				return null;
-			} catch (Throwable t) {
-				logger.error("Error querying API key: " + t.getMessage());
-				t.printStackTrace();
-				return null;
-			}
-		} finally {
-			if (logger.isTraceEnabled()) {
-				logger.trace("EXIT - " + Tier3.class.getName() + ".textContext()");
-			}
-		}
-	}
+            if (ctx == null) {
+                logger.warn("No context was provided for testing");
+                return null;
+            }
+            if (ctx.getAccountNumber() != null && ctx.getAccountNumber().length() > 4) {
+                logger.warn("Invalid account number");
+                return null;
+            }
+            try {
+                JSONObject json = new JSONObject();
+                json.put("AccountAlias", ctx.getAccountNumber());
+                APIResponse response = new APIHandler(this).post("Account/GetAccountDetails/JSON", json.toString());
+                response.validate();
+                if (response.getJSON().getString("AccountDetails") != null) {
+                    return response.getJSON().getJSONObject("AccountDetails").getString("AccountAlias");
+                }
+                return null;
+            } catch (Throwable t) {
+                logger.error("Error querying API key: " + t.getMessage());
+                t.printStackTrace();
+                return null;
+            }
+        } finally {
+            if (logger.isTraceEnabled()) {
+                logger.trace("EXIT - " + Tier3.class.getName() + ".textContext()");
+            }
+        }
+    }
 
-	@Nonnull
-	public String logon() throws CloudException, InternalException {
-		if (logger.isTraceEnabled()) {
-			logger.trace("ENTER - " + Tier3.class.getName() + ".logon()");
-		}
-		String sessionId = null;
-		try {
-			byte[][] keys = (byte[][]) getContext().getConfigurationValue("apiAccessKey");
-			String apiKey = new String(keys[0], "utf-8");
-			String apiPass = new String(keys[1], "utf-8");
+    @Nonnull
+    public String logon() throws CloudException, InternalException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("ENTER - " + Tier3.class.getName() + ".logon()");
+        }
+        String sessionId = null;
+        try {
+            byte[][] keys = (byte[][]) getContext().getConfigurationValue("apiAccessKey");
+            String apiKey = new String(keys[0], "utf-8");
+            String apiPass = new String(keys[1], "utf-8");
 
-			Cache<String> cacheComp = Cache.getInstance(this, "sessionComparables", String.class,
-					CacheLevel.CLOUD_ACCOUNT);
-			Iterable<String> sessionComparables = cacheComp.get(this.getContext());
+            Cache<String> cacheComp = Cache.getInstance(this, "sessionComparables", String.class,
+                    CacheLevel.CLOUD_ACCOUNT);
+            Iterable<String> sessionComparables = cacheComp.get(this.getContext());
 
-			Boolean refreshSession = false;
-			if (sessionComparables == null
-					|| !sessionComparables.iterator().next().equals(getContext().getAccountNumber() + apiKey + apiPass)) {
-				cacheComp.put(getContext(), Arrays.asList(getContext().getAccountNumber() + apiKey + apiPass));
-				refreshSession = true;
-			}
+            Boolean refreshSession = false;
+            if (sessionComparables == null
+                    || !sessionComparables.iterator().next().equals(getContext().getAccountNumber() + apiKey + apiPass)) {
+                cacheComp.put(getContext(), Arrays.asList(getContext().getAccountNumber() + apiKey + apiPass));
+                refreshSession = true;
+            }
 
-			Cache<String> cache = Cache.getInstance(this, "sessionIds", String.class, CacheLevel.CLOUD_ACCOUNT,
-					new TimePeriod<Hour>(4, TimePeriod.HOUR));
-			Iterable<String> sessionIds = cache.get(this.getContext());
-			if (sessionIds == null || refreshSession) {
-				JSONObject json = new JSONObject();
-				json.put("APIKey", apiKey);
-				json.put("Password", apiPass);
-				APIResponse response = new APIHandler(this).post("Auth/Logon/", json.toString());
-				if (response != null && response.getJSON() != null && response.getJSON().has("Session")) {
-					sessionId = response.getJSON().getString("Session");
-				} else {
-					throw new InternalException("Error obtaining session with supplied credentials");
-				}
-				cache.put(getContext(), Arrays.asList(sessionId));
-			} else {
-				sessionId = sessionIds.iterator().next();
-			}
-			return sessionId;
+            Cache<String> cache = Cache.getInstance(this, "sessionIds", String.class, CacheLevel.CLOUD_ACCOUNT,
+                    new TimePeriod<Hour>(4, TimePeriod.HOUR));
+            Iterable<String> sessionIds = cache.get(this.getContext());
+            if (sessionIds == null || refreshSession) {
+                JSONObject json = new JSONObject();
+                json.put("APIKey", apiKey);
+                json.put("Password", apiPass);
+                APIResponse response = new APIHandler(this).post("Auth/Logon/", json.toString());
+                if (response != null && response.getJSON() != null && response.getJSON().has("Session")) {
+                    sessionId = response.getJSON().getString("Session");
+                } else {
+                    throw new InternalException("Error obtaining session with supplied credentials");
+                }
+                cache.put(getContext(), Arrays.asList(sessionId));
+            } else {
+                sessionId = sessionIds.iterator().next();
+            }
+            return sessionId;
 
-		} catch (JSONException e) {
-			throw new CloudException(e);
+        } catch (JSONException e) {
+            throw new CloudException(e);
 
-		} catch (UnsupportedEncodingException e) {
-			throw new CloudException(e);
+        } catch (UnsupportedEncodingException e) {
+            throw new CloudException(e);
 
-		} finally {
-			if (logger.isTraceEnabled()) {
-				logger.trace("EXIT - " + Tier3.class.getName() + ".logon()");
-			}
-		}
-	}
+        } finally {
+            if (logger.isTraceEnabled()) {
+                logger.trace("EXIT - " + Tier3.class.getName() + ".logon()");
+            }
+        }
+    }
 
-	public JSONObject getDeploymentStatus(int requestId) throws CloudException, InternalException {
-		if (logger.isTraceEnabled()) {
-			logger.trace("ENTER - " + Tier3.class.getName() + ".getDeploymentStatus()");
-		}
-		try {
+    public JSONObject getDeploymentStatus(int requestId) throws CloudException, InternalException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("ENTER - " + Tier3.class.getName() + ".getDeploymentStatus()");
+        }
+        try {
 
-			APIHandler method = new APIHandler(this);
-			JSONObject post = new JSONObject();
-			post.put("RequestId", requestId);
-			APIResponse response = method.post("Blueprint/GetDeploymentStatus/JSON", post.toString());
+            APIHandler method = new APIHandler(this);
+            JSONObject post = new JSONObject();
+            post.put("RequestId", requestId);
+            APIResponse response = method.post("Blueprint/GetDeploymentStatus/JSON", post.toString());
 
-			if (response == null) {
-				throw new CloudException("Could not retrieve server build request");
-			}
+            if (response == null) {
+                throw new CloudException("Could not retrieve server build request");
+            }
 
-			JSONObject json = response.getJSON();
-			if (json.has("Success") && !json.getBoolean("Success")) {
-				throw new CloudException(json.getString("Message"));
-			}
+            JSONObject json = response.getJSON();
+            if (json.has("Success") && !json.getBoolean("Success")) {
+                throw new CloudException(json.getString("Message"));
+            }
 
-			return json;
+            return json;
 
-		} catch (JSONException e) {
-			throw new CloudException(e);
-		} finally {
-			if (logger.isTraceEnabled()) {
-				logger.trace("EXIT - " + Tier3.class.getName() + ".getDeploymentStatus()");
-			}
-		}
-	}
+        } catch (JSONException e) {
+            throw new CloudException(e);
+        } finally {
+            if (logger.isTraceEnabled()) {
+                logger.trace("EXIT - " + Tier3.class.getName() + ".getDeploymentStatus()");
+            }
+        }
+    }
 
-	public long parseTimestamp(String time) throws CloudException {
-		if (time == null) {
-			return 0L;
-		}
-		SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    public long parseTimestamp(String time) throws CloudException {
+        if (time == null) {
+            return 0L;
+        }
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
-		if (time.length() > 0) {
-			try {
-				return fmt.parse(time).getTime();
-			} catch (ParseException e) {
-				fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-				try {
-					return fmt.parse(time).getTime();
-				} catch (ParseException encore) {
-					fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-					try {
-						return fmt.parse(time).getTime();
-					} catch (ParseException again) {
-						try {
-							return fmt.parse(time).getTime();
-						} catch (ParseException whynot) {
-							fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-							try {
-								return fmt.parse(time).getTime();
-							} catch (ParseException because) {
-								throw new CloudException("Could not parse date: " + time);
-							}
-						}
-					}
-				}
-			}
-		}
-		return 0L;
-	}
+        if (time.length() > 0) {
+            try {
+                return fmt.parse(time).getTime();
+            } catch (ParseException e) {
+                fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+                try {
+                    return fmt.parse(time).getTime();
+                } catch (ParseException encore) {
+                    fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                    try {
+                        return fmt.parse(time).getTime();
+                    } catch (ParseException again) {
+                        try {
+                            return fmt.parse(time).getTime();
+                        } catch (ParseException whynot) {
+                            fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            try {
+                                return fmt.parse(time).getTime();
+                            } catch (ParseException because) {
+                                throw new CloudException("Could not parse date: " + time);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return 0L;
+    }
 
-	@Override
-	public ContextRequirements getContextRequirements() {
-		return new ContextRequirements(new ContextRequirements.Field("apiAccessKey",
-				ContextRequirements.FieldType.KEYPAIR));
-	}
+    @Override
+    public ContextRequirements getContextRequirements() {
+        return new ContextRequirements(new ContextRequirements.Field("apiAccessKey",
+                ContextRequirements.FieldType.KEYPAIR));
+    }
 }

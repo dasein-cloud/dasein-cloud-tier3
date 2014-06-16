@@ -27,19 +27,23 @@ import javax.annotation.Nonnull;
 
 /**
  * Base exception class for errors that occur in MyCloud.
- * <p>Created by George Reese: 12/06/2012 9:44 AM</p>
+ * <p>
+ * Created by George Reese: 12/06/2012 9:44 AM
+ * </p>
+ * 
  * @author George Reese
  * @version 2013.01 initial version
  * @since 2013.01
  */
 public class Tier3Exception extends CloudException {
-	private static final long serialVersionUID = 2374763244634165451L;
+    private static final long serialVersionUID = 2374763244634165451L;
 
-	public Tier3Exception(@Nonnull Throwable cause) {
+    public Tier3Exception(@Nonnull Throwable cause) {
         super(cause);
     }
 
-    public Tier3Exception(@Nonnull CloudErrorType type, @Nonnegative int httpCode, @Nonnull String providerCode, @Nonnull String message) {
+    public Tier3Exception(@Nonnull CloudErrorType type, @Nonnegative int httpCode, @Nonnull String providerCode,
+            @Nonnull String message) {
         super(type, httpCode, providerCode, message);
     }
 }
