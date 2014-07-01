@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.dasein</groupId>
     <artifactId>dasein-cloud-tier3</artifactId>
-    <version>2014.05-SNAPSHOT</version>
+    <version>2014.07.1-SNAPSHOT</version>
     <name>dasein-cloud-tier3</name>
     <description>Implementation of the Dasein Cloud API for Tier 3 / CenturyLink.</description>
     <inceptionYear>2014</inceptionYear>
@@ -32,7 +32,7 @@
         <dependency>
             <groupId>org.dasein</groupId>
             <artifactId>dasein-cloud-core</artifactId>
-            <version>2014.05.3</version>
+            <version>2014.07.1-SNAPSHOT</version>
             <scope>compile</scope>
             <optional>false</optional>
         </dependency>
@@ -65,7 +65,7 @@
         <dependency>
             <groupId>org.dasein</groupId>
             <artifactId>dasein-cloud-test</artifactId>
-            <version>2014.05.1</version>
+            <version>2014.07.1-SNAPSHOT</version>
             <scope>test</scope>
             <optional>false</optional>
         </dependency>
