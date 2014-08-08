@@ -45,42 +45,43 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class Tier3Snapshot implements SnapshotSupport {
-	static private final Logger logger = Tier3.getLogger(Tier3Image.class);
-	private Tier3 provider;
-	static final String SNAPSHOT_ID_DELIMITER = ".";
+public class Tier3Snapshot extends AbstractSnapshotSupport {
+    static private final Logger logger = Tier3.getLogger(Tier3Image.class);
+    private Tier3 provider;
+    static final String SNAPSHOT_ID_DELIMITER = ".";
+    private volatile transient Tier3SnapshotCapabilities capabilities;
 
-	public Tier3Snapshot(Tier3 provider) {
-		this.provider = provider;
-	}
+    public Tier3Snapshot( Tier3 provider ) {
+        super(provider);
+        this.provider = provider;
+    }
 
-	@Override
-	public String[] mapServiceAction(ServiceAction action) {
-		return new String[0];
-	}
+    @Override
+    public String[] mapServiceAction( ServiceAction action ) {
+        return new String[0];
+    }
 
-	@Override
-	public void addSnapshotShare(String providerSnapshotId, String accountNumber) throws CloudException,
-			InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public void addSnapshotShare( String providerSnapshotId, String accountNumber ) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public void addPublicShare(String providerSnapshotId) throws CloudException, InternalException {
-		throw new OperationNotSupportedException();
-	}
+    @Override
+    public void addPublicShare( String providerSnapshotId ) throws CloudException, InternalException {
+        throw new OperationNotSupportedException();
+    }
 
-	@Override
-	public String createSnapshot(SnapshotCreateOptions options) throws CloudException, InternalException {
-		APITrace.begin(provider, "createSnapshot");
-		try {
-			if (options == null || options.getVolumeId() == null) {
-				throw new CloudException("VolumeId is required");
-			}
+    @Override
+    public String createSnapshot( SnapshotCreateOptions options ) throws CloudException, InternalException {
+        APITrace.begin(provider, "createSnapshot");
+        try {
+            if( options == null || options.getVolumeId() == null ) {
+                throw new CloudException("VolumeId is required");
+            }
 
-			APIHandler method = new APIHandler(provider);
-			JSONObject post = new JSONObject();
-			post.put("Name", options.getVolumeId());
+            APIHandler method = new APIHandler(provider);
+            JSONObject post = new JSONObject();
+            post.put("Name", options.getVolumeId());
 			APIResponse response = method.post("Server/SnapshotServer/JSON", post.toString());
 			response.validate();
 
@@ -116,15 +117,16 @@ public class Tier3Snapshot implements SnapshotSupport {
 		}
 	}
 
-	@Override
-	public String create(String ofVolume, String description) throws InternalException, CloudException {
-		SnapshotCreateOptions options = SnapshotCreateOptions.getInstanceForCreate(ofVolume, null, null);
-		return createSnapshot(options);
-	}
 
 	@Override
+    @Deprecated
 	public String getProviderTermForSnapshot(Locale locale) {
-		return "snapshot";
+        try {
+            return getCapabilities().getProviderTermForSnapshot(locale);
+        } catch( CloudException e ) {
+        } catch( InternalException e ) {
+        }
+        return "snapshot";
 	}
 
 	@Override
@@ -350,43 +352,6 @@ public class Tier3Snapshot implements SnapshotSupport {
 	}
 
 	@Override
-	public Iterable<Snapshot> searchSnapshots(String ownerId, String keyword) throws InternalException, CloudException {
-		throw new OperationNotSupportedException();
-	}
-
-	@Override
-	public void shareSnapshot(String snapshotId, String withAccountId, boolean affirmative) throws InternalException,
-			CloudException {
-		throw new OperationNotSupportedException();
-	}
-
-	@Override
-	public Snapshot snapshot(String volumeId, String name, String description, Tag... tags) throws InternalException,
-			CloudException {
-		throw new OperationNotSupportedException("Use the createSnapshot method instead");
-	}
-
-	@Override
-	public boolean supportsSnapshotCopying() throws CloudException, InternalException {
-		return false;
-	}
-
-	@Override
-	public boolean supportsSnapshotCreation() throws CloudException, InternalException {
-		return true;
-	}
-
-	@Override
-	public boolean supportsSnapshotSharing() throws InternalException, CloudException {
-		return false;
-	}
-
-	@Override
-	public boolean supportsSnapshotSharingWithPublic() throws InternalException, CloudException {
-		return false;
-	}
-
-	@Override
 	public void updateTags(String snapshotId, Tag... tags) throws CloudException, InternalException {
 		throw new OperationNotSupportedException();
 	}
@@ -398,47 +363,10 @@ public class Tier3Snapshot implements SnapshotSupport {
 
 	@Override
 	public SnapshotCapabilities getCapabilities() throws CloudException, InternalException {
-		return new SnapshotCapabilities() {
-            
-            @Override
-            public String getRegionId() {
-                return provider.getContext().getRegionId();
-            }
-            
-            @Override
-            public String getAccountNumber() {
-                return provider.getContext().getAccountNumber();
-            }
-            
-            @Override
-            public boolean supportsSnapshotSharingWithPublic() throws InternalException, CloudException {
-                return false;
-            }
-            
-            @Override
-            public boolean supportsSnapshotSharing() throws InternalException, CloudException {
-                return false;
-            }
-            
-            @Override
-            public boolean supportsSnapshotCreation() throws CloudException, InternalException {
-                return true;
-            }
-            
-            @Override
-            public boolean supportsSnapshotCopying() throws CloudException, InternalException {
-                return false;
-            }
-            
-            @Override
-            public Requirement identifyAttachmentRequirement() throws InternalException, CloudException {
-                return Requirement.REQUIRED;
-            }
-            
-            @Override
-            public String getProviderTermForSnapshot(Locale arg0) {
-                return "snapshot";
-            }
-        };
+        if( capabilities == null ) {
+            capabilities = new Tier3SnapshotCapabilities(provider);
+        }
+        return capabilities;
 	}
+
 }

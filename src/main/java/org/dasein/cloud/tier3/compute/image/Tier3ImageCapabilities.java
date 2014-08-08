@@ -18,11 +18,11 @@
  */
 package org.dasein.cloud.tier3.compute.image;
 
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
+import org.dasein.cloud.tier3.Tier3;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -34,16 +34,10 @@ import java.util.Locale;
 * @version 2014.08 initial version
 * @since 2014.08
 */
-class Tier3ImageCapabilities implements ImageCapabilities {
+class Tier3ImageCapabilities extends AbstractCapabilities<Tier3> implements ImageCapabilities {
 
-    @Override
-    public String getRegionId() {
-        return provider.getContext().getRegionId();
-    }
-
-    @Override
-    public String getAccountNumber() {
-        return provider.getContext().getAccountNumber();
+    public Tier3ImageCapabilities(Tier3 provider) {
+        super(provider);
     }
 
     @Override
@@ -105,6 +99,11 @@ class Tier3ImageCapabilities implements ImageCapabilities {
     @Override
     public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
         return getProviderTermForImage(locale, cls);
+    }
+
+    @Override
+    public @Nullable VisibleScope getImageVisibleScope() {
+        return null;
     }
 
     @Override

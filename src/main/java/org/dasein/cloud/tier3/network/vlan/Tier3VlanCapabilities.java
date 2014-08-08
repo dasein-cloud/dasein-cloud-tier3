@@ -18,13 +18,12 @@
  */
 package org.dasein.cloud.tier3.network.vlan;
 
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.OperationNotSupportedException;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.network.IPVersion;
 import org.dasein.cloud.network.VLANCapabilities;
+import org.dasein.cloud.tier3.Tier3;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Locale;
 
@@ -36,16 +35,10 @@ import java.util.Locale;
 * @version 2014.08 initial version
 * @since 2014.08
 */
-class Tier3VlanCapabilities implements VLANCapabilities {
+class Tier3VlanCapabilities extends AbstractCapabilities<Tier3> implements VLANCapabilities {
 
-    @Override
-    public String getRegionId() {
-        return provider.getContext().getRegionId();
-    }
-
-    @Override
-    public String getAccountNumber() {
-        return provider.getContext().getAccountNumber();
+    public Tier3VlanCapabilities(Tier3 provider) {
+        super(provider);
     }
 
     @Override
@@ -86,6 +79,11 @@ class Tier3VlanCapabilities implements VLANCapabilities {
     @Override
     public Requirement getSubnetSupport() throws CloudException, InternalException {
         return Requirement.NONE;
+    }
+
+    @Override
+    public @Nullable VisibleScope getVLANVisibleScope() {
+        return null;
     }
 
     @Override

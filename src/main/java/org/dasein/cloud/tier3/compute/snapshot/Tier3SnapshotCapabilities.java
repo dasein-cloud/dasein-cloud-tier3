@@ -18,31 +18,26 @@
  */
 package org.dasein.cloud.tier3.compute.snapshot;
 
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
+import org.dasein.cloud.*;
 import org.dasein.cloud.compute.SnapshotCapabilities;
+import org.dasein.cloud.tier3.Tier3;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 /**
-* Description
+* Describes CLC VM snapshot capabilities
 * <p>Created by stas: 06/08/2014 13:00</p>
 *
 * @author Stas Maksimov
 * @version 2014.08 initial version
 * @since 2014.08
 */
-class Tier3SnapshotCapabilities implements SnapshotCapabilities {
+class Tier3SnapshotCapabilities extends AbstractCapabilities<Tier3> implements SnapshotCapabilities {
 
-    @Override
-    public String getRegionId() {
-        return provider.getContext().getRegionId();
-    }
-
-    @Override
-    public String getAccountNumber() {
-        return provider.getContext().getAccountNumber();
+    public Tier3SnapshotCapabilities( @Nonnull Tier3 provider ) {
+        super(provider);
     }
 
     @Override
@@ -71,7 +66,12 @@ class Tier3SnapshotCapabilities implements SnapshotCapabilities {
     }
 
     @Override
-    public String getProviderTermForSnapshot(Locale arg0) {
+    public String getProviderTermForSnapshot(Locale locale) {
         return "snapshot";
+    }
+
+    @Override
+    public @Nullable VisibleScope getSnapshotVisibleScope() {
+        return null;
     }
 }

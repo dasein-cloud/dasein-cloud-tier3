@@ -18,11 +18,9 @@
  */
 package org.dasein.cloud.tier3.compute.vm;
 
-import org.dasein.cloud.CloudException;
-import org.dasein.cloud.InternalException;
-import org.dasein.cloud.Requirement;
-import org.dasein.cloud.VisibleScope;
+import org.dasein.cloud.*;
 import org.dasein.cloud.compute.*;
+import org.dasein.cloud.tier3.Tier3;
 import org.dasein.cloud.util.NamingConstraints;
 
 import javax.annotation.Nullable;
@@ -37,22 +35,10 @@ import java.util.Locale;
 * @version 2014.08 initial version
 * @since 2014.08
 */
-class Tier3VMCapabilities implements VirtualMachineCapabilities {
+class Tier3VMCapabilities extends AbstractCapabilities<Tier3> implements VirtualMachineCapabilities {
 
-    private Tier3VM tier3VM;
-
-    public Tier3VMCapabilities( Tier3VM tier3VM ) {
-        this.tier3VM = tier3VM;
-    }
-
-    @Override
-    public String getRegionId() {
-        return tier3VM.provider.getContext().getRegionId();
-    }
-
-    @Override
-    public String getAccountNumber() {
-        return tier3VM.provider.getContext().getAccountNumber();
+    public Tier3VMCapabilities( Tier3 provider ) {
+        super(provider);
     }
 
     @Override

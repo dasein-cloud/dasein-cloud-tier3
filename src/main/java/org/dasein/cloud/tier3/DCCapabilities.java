@@ -18,13 +18,45 @@
  */
 package org.dasein.cloud.tier3;
 
+import org.dasein.cloud.AbstractCapabilities;
+import org.dasein.cloud.dc.DataCenterCapabilities;
+
+import java.util.Locale;
+
 /**
- * Description
+ * Describes Tier3 data centers capabilities
  * <p>Created by stas: 06/08/2014 10:21</p>
  *
  * @author Stas Maksimov
- * @version 2014.07 initial version
- * @since 2014.07
+ * @version 2014.08 initial version
+ * @since 2014.08
  */
-public class DCCapabilities {
+public class DCCapabilities extends AbstractCapabilities<Tier3> implements DataCenterCapabilities {
+    public DCCapabilities( Tier3 provider ) {
+        super(provider);
+    }
+
+    @Override
+    public String getProviderTermForDataCenter( Locale locale ) {
+        return "data center";
+    }
+
+    @Override
+    public String getProviderTermForRegion( Locale locale ) {
+        return "region";
+    }
+    @Override
+    public boolean supportsAffinityGroups() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsResourcePools() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsStoragePools() {
+        return false;
+    }
 }

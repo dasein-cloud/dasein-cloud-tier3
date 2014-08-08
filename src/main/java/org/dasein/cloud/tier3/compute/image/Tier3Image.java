@@ -42,7 +42,6 @@ import org.dasein.cloud.compute.MachineImageState;
 import org.dasein.cloud.compute.MachineImageSupport;
 import org.dasein.cloud.compute.MachineImageType;
 import org.dasein.cloud.compute.Platform;
-import org.dasein.cloud.compute.VmState;
 import org.dasein.cloud.identity.ServiceAction;
 import org.dasein.cloud.tier3.APIHandler;
 import org.dasein.cloud.tier3.APIResponse;
@@ -53,41 +52,40 @@ import org.json.JSONObject;
 
 public class Tier3Image implements MachineImageSupport {
     static private final Logger logger = Tier3.getLogger(Tier3Image.class);
-    private Tier3 provider;
+    private Tier3                  provider;
+    private transient volatile Tier3ImageCapabilities capabilities;
 
-    public Tier3Image(Tier3 provider) {
+    public Tier3Image( Tier3 provider ) {
         this.provider = provider;
     }
 
     @Override
-    public String[] mapServiceAction(ServiceAction action) {
+    public String[] mapServiceAction( ServiceAction action ) {
         return new String[0];
     }
 
     @Override
-    public void addImageShare(String providerImageId, String accountNumber) throws CloudException, InternalException {
+    public void addImageShare( String providerImageId, String accountNumber ) throws CloudException, InternalException {
         throw new OperationNotSupportedException();
     }
 
     @Override
-    public void addPublicShare(String providerImageId) throws CloudException, InternalException {
+    public void addPublicShare( String providerImageId ) throws CloudException, InternalException {
         throw new OperationNotSupportedException();
     }
 
     @Override
-    public String bundleVirtualMachine(String virtualMachineId, MachineImageFormat format, String bucket, String name)
-            throws CloudException, InternalException {
+    public String bundleVirtualMachine( String virtualMachineId, MachineImageFormat format, String bucket, String name ) throws CloudException, InternalException {
         throw new OperationNotSupportedException();
     }
 
     @Override
-    public void bundleVirtualMachineAsync(String virtualMachineId, MachineImageFormat format, String bucket,
-            String name, AsynchronousTask<String> trackingTask) throws CloudException, InternalException {
+    public void bundleVirtualMachineAsync( String virtualMachineId, MachineImageFormat format, String bucket, String name, AsynchronousTask<String> trackingTask ) throws CloudException, InternalException {
         throw new OperationNotSupportedException();
     }
 
     @Override
-    public MachineImage captureImage(ImageCreateOptions options) throws CloudException, InternalException {
+    public MachineImage captureImage( ImageCreateOptions options ) throws CloudException, InternalException {
         throw new OperationNotSupportedException();
         // if (!options.getMetaData().containsKey("Password")) {
         // throw new CloudException("MetaData entry for 'Password' required");
@@ -516,88 +514,10 @@ public class Tier3Image implements MachineImageSupport {
 
     @Override
     public ImageCapabilities getCapabilities() throws CloudException, InternalException {
-        return new ImageCapabilities() {
-
-            @Override
-            public String getRegionId() {
-                return provider.getContext().getRegionId();
-            }
-
-            @Override
-            public String getAccountNumber() {
-                return provider.getContext().getAccountNumber();
-            }
-
-            @Override
-            public boolean supportsPublicLibrary(ImageClass cls) throws CloudException, InternalException {
-                return false;
-            }
-
-            @Override
-            public boolean supportsImageSharingWithPublic() throws CloudException, InternalException {
-                return false;
-            }
-
-            @Override
-            public boolean supportsImageSharing() throws CloudException, InternalException {
-                return false;
-            }
-
-            @Override
-            public boolean supportsImageCapture(MachineImageType type) throws CloudException, InternalException {
-                return false;
-            }
-
-            @Override
-            public boolean supportsDirectImageUpload() throws CloudException, InternalException {
-                return false;
-            }
-
-            @Override
-            public Iterable<MachineImageType> listSupportedImageTypes() throws CloudException, InternalException {
-                return Collections.singletonList(MachineImageType.VOLUME);
-            }
-
-            @Override
-            public Iterable<ImageClass> listSupportedImageClasses() throws CloudException, InternalException {
-                return Collections.singletonList(ImageClass.MACHINE);
-            }
-
-            @Override
-            public Iterable<MachineImageFormat> listSupportedFormatsForBundling() throws CloudException,
-                    InternalException {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public Iterable<MachineImageFormat> listSupportedFormats() throws CloudException, InternalException {
-                return Collections.emptyList();
-            }
-
-            @Override
-            public Requirement identifyLocalBundlingRequirement() throws CloudException, InternalException {
-                return Requirement.REQUIRED;
-            }
-
-            @Override
-            public String getProviderTermForImage(Locale locale, ImageClass cls) {
-                return "template";
-            }
-
-            @Override
-            public String getProviderTermForCustomImage(Locale locale, ImageClass cls) {
-                return getProviderTermForImage(locale, cls);
-            }
-
-            @Override
-            public boolean canImage(VmState fromState) throws CloudException, InternalException {
-                return false;
-            }
-
-            @Override
-            public boolean canBundle(VmState fromState) throws CloudException, InternalException {
-                return false;
-            }
-        };
+        if( capabilities == null ) {
+            capabilities = new Tier3ImageCapabilities(provider);
+        }
+        return capabilities;
     }
+
 }
