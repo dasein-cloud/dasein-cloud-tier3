@@ -73,12 +73,12 @@
         <appender-ref ref="ASYNCUNIT" />
     </category>
     
-    <category name="dasein.cloud.tier3.std">
+    <category name="dasein.cloud.centurylink.std">
         <priority value="TRACE" />
         <appender-ref ref="ASYNCDASEIN" />
     </category>
 
-    <category name="dasein.cloud.tier3.wire">
+    <category name="dasein.cloud.centurylink.wire">
         <priority value="DEBUG" />
         <appender-ref ref="ASYNCWIRE" />
     </category>

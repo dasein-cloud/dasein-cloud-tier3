@@ -21,6 +21,7 @@ package org.dasein.cloud.tier3;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Locale;
 
 import javax.annotation.Nonnull;
@@ -30,9 +31,7 @@ import org.apache.log4j.Logger;
 import org.dasein.cloud.CloudException;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.ProviderContext;
-import org.dasein.cloud.dc.DataCenter;
-import org.dasein.cloud.dc.DataCenterServices;
-import org.dasein.cloud.dc.Region;
+import org.dasein.cloud.dc.*;
 import org.dasein.cloud.util.APITrace;
 import org.dasein.cloud.util.Cache;
 import org.dasein.cloud.util.CacheLevel;
@@ -52,9 +51,18 @@ public class DataCenters implements DataCenterServices {
     static private final Logger logger = Tier3.getLogger(DataCenters.class);
 
     private Tier3 provider;
+    private volatile transient DCCapabilities capabilities;
 
     DataCenters(@Nonnull Tier3 provider) {
         this.provider = provider;
+    }
+
+    @Override
+    public @Nonnull DataCenterCapabilities getCapabilities() throws InternalException, CloudException {
+        if( capabilities == null ) {
+            capabilities = new DCCapabilities(provider);
+        }
+        return capabilities;
     }
 
     @Override
@@ -71,14 +79,24 @@ public class DataCenters implements DataCenterServices {
     }
 
     @Override
-    public @Nonnull
-    String getProviderTermForDataCenter(@Nonnull Locale locale) {
+    @Deprecated
+    public @Nonnull String getProviderTermForDataCenter(@Nonnull Locale locale) {
+        try {
+            return getCapabilities().getProviderTermForDataCenter(locale);
+        } catch( InternalException e ) {
+        } catch( CloudException e ) {
+        }
         return "data center";
     }
 
     @Override
-    public @Nonnull
-    String getProviderTermForRegion(@Nonnull Locale locale) {
+    @Deprecated
+    public @Nonnull String getProviderTermForRegion(@Nonnull Locale locale) {
+        try {
+            return getCapabilities().getProviderTermForRegion(locale);
+        } catch( InternalException e ) {
+        } catch( CloudException e ) {
+        }
         return "region";
     }
 
@@ -193,5 +211,20 @@ public class DataCenters implements DataCenterServices {
         } finally {
             APITrace.end();
         }
+    }
+
+    @Override
+    public @Nonnull Collection<ResourcePool> listResourcePools( String providerDataCenterId ) throws InternalException, CloudException {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public @Nullable ResourcePool getResourcePool( String providerResourcePoolId ) throws InternalException, CloudException {
+        return null;
+    }
+
+    @Override
+    public @Nonnull Collection<StoragePool> listStoragePools() throws InternalException, CloudException {
+        return Collections.emptyList();
     }
 }

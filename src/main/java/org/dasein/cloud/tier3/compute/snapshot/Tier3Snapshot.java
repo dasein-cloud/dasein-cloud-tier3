@@ -45,381 +45,328 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class Tier3Snapshot implements SnapshotSupport {
+public class Tier3Snapshot extends AbstractSnapshotSupport {
     static private final Logger logger = Tier3.getLogger(Tier3Image.class);
     private Tier3 provider;
     static final String SNAPSHOT_ID_DELIMITER = ".";
+    private volatile transient Tier3SnapshotCapabilities capabilities;
 
-    public Tier3Snapshot(Tier3 provider) {
+    public Tier3Snapshot( Tier3 provider ) {
+        super(provider);
         this.provider = provider;
     }
 
     @Override
-    public String[] mapServiceAction(ServiceAction action) {
+    public String[] mapServiceAction( ServiceAction action ) {
         return new String[0];
     }
 
     @Override
-    public void addSnapshotShare(String providerSnapshotId, String accountNumber) throws CloudException,
-            InternalException {
+    public void addSnapshotShare( String providerSnapshotId, String accountNumber ) throws CloudException, InternalException {
         throw new OperationNotSupportedException();
     }
 
     @Override
-    public void addPublicShare(String providerSnapshotId) throws CloudException, InternalException {
+    public void addPublicShare( String providerSnapshotId ) throws CloudException, InternalException {
         throw new OperationNotSupportedException();
     }
 
     @Override
-    public String createSnapshot(SnapshotCreateOptions options) throws CloudException, InternalException {
+    public String createSnapshot( SnapshotCreateOptions options ) throws CloudException, InternalException {
         APITrace.begin(provider, "createSnapshot");
         try {
-            if (options == null || options.getVolumeId() == null) {
+            if( options == null || options.getVolumeId() == null ) {
                 throw new CloudException("VolumeId is required");
             }
 
             APIHandler method = new APIHandler(provider);
             JSONObject post = new JSONObject();
             post.put("Name", options.getVolumeId());
-            APIResponse response = method.post("Server/SnapshotServer/JSON", post.toString());
-            response.validate();
+			APIResponse response = method.post("Server/SnapshotServer/JSON", post.toString());
+			response.validate();
 
-            // TODO watch the deployment status response to see what we can
-            // return, looking for the snapshot name
-            int requestId = response.getJSON().getInt("RequestID");
-            String name = null;
-            long timeout = System.currentTimeMillis() + CalendarWrapper.MINUTE;
-            while (timeout > System.currentTimeMillis()) {
+			// TODO watch the deployment status response to see what we can
+			// return, looking for the snapshot name
+			int requestId = response.getJSON().getInt("RequestID");
+			String name = null;
+			long timeout = System.currentTimeMillis() + CalendarWrapper.MINUTE;
+			while (timeout > System.currentTimeMillis()) {
 
-                JSONObject deployStatus = provider.getDeploymentStatus(requestId);
+				JSONObject deployStatus = provider.getDeploymentStatus(requestId);
 
-                JSONArray servers = deployStatus.getJSONArray("Servers");
-                if (deployStatus.has("Servers") && !deployStatus.isNull("Servers") && servers.length() > 0) {
-                    name = servers.get(0).toString();
-                    break;
-                } else {
-                    try {
-                        Thread.sleep(10000L);
-                    } catch (InterruptedException ignore) {
-                    }
-                }
-            }
+				JSONArray servers = deployStatus.getJSONArray("Servers");
+				if (deployStatus.has("Servers") && !deployStatus.isNull("Servers") && servers.length() > 0) {
+					name = servers.get(0).toString();
+					break;
+				} else {
+					try {
+						Thread.sleep(10000L);
+					} catch (InterruptedException ignore) {
+					}
+				}
+			}
 
-            // since the name of a snapshot doesn't contain the server name,
-            // might need to concatenate the return
-            return name;
+			// since the name of a snapshot doesn't contain the server name,
+			// might need to concatenate the return
+			return name;
 
-        } catch (JSONException e) {
-            throw new CloudException(e);
-        } finally {
-            APITrace.end();
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			APITrace.end();
+		}
+	}
+
+
+	@Override
+    @Deprecated
+	public String getProviderTermForSnapshot(Locale locale) {
+        try {
+            return getCapabilities().getProviderTermForSnapshot(locale);
+        } catch( CloudException e ) {
+        } catch( InternalException e ) {
         }
-    }
-
-    @Override
-    public String create(String ofVolume, String description) throws InternalException, CloudException {
-        SnapshotCreateOptions options = SnapshotCreateOptions.getInstanceForCreate(ofVolume, null, null);
-        return createSnapshot(options);
-    }
-
-    @Override
-    public String getProviderTermForSnapshot(Locale locale) {
         return "snapshot";
-    }
+	}
 
-    @Override
-    public Snapshot getSnapshot(String snapshotId) throws InternalException, CloudException {
-        APITrace.begin(provider, "getSnapshot");
-        try {
-            if (snapshotId == null) {
-                throw new CloudException("SnapshotId is required");
-            }
-            String serverName = extractServerNameFromSnapshotId(snapshotId);
-            snapshotId = removeServerNameFromSnapshotId(snapshotId, serverName);
+	@Override
+	public Snapshot getSnapshot(String snapshotId) throws InternalException, CloudException {
+		APITrace.begin(provider, "getSnapshot");
+		try {
+			if (snapshotId == null) {
+				throw new CloudException("SnapshotId is required");
+			}
+			String serverName = extractServerNameFromSnapshotId(snapshotId);
+			snapshotId = removeServerNameFromSnapshotId(snapshotId, serverName);
 
-            APIHandler method = new APIHandler(provider);
-            JSONObject post = new JSONObject();
-            post.put("Name", serverName);
-            APIResponse response = method.post("Server/GetSnapshots/JSON", "");
-            response.validate();
+			APIHandler method = new APIHandler(provider);
+			JSONObject post = new JSONObject();
+			post.put("Name", serverName);
+			APIResponse response = method.post("Server/GetSnapshots/JSON", "");
+			response.validate();
 
-            JSONObject json = response.getJSON();
-            if (json.has("Snapshots")) {
-                for (int i = 0; i < json.getJSONArray("Snapshots").length(); i++) {
-                    JSONObject snapshot = json.getJSONArray("Snapshots").getJSONObject(i);
-                    if (snapshot.getString("Name").equals(snapshotId)) {
-                        return toSnapshot(serverName, snapshot);
-                    }
-                }
-            }
+			JSONObject json = response.getJSON();
+			if (json.has("Snapshots")) {
+				for (int i = 0; i < json.getJSONArray("Snapshots").length(); i++) {
+					JSONObject snapshot = json.getJSONArray("Snapshots").getJSONObject(i);
+					if (snapshot.getString("Name").equals(snapshotId)) {
+						return toSnapshot(serverName, snapshot);
+					}
+				}
+			}
 
-            return null;
+			return null;
 
-        } catch (JSONException e) {
-            throw new CloudException(e);
-        } finally {
-            APITrace.end();
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			APITrace.end();
+		}
+	}
+
+	private String removeServerNameFromSnapshotId(String snapshotId, String serverName) {
+		if (snapshotId == null || serverName == null) {
+			return null;
+		}
+		if (snapshotId.contains(SNAPSHOT_ID_DELIMITER)) {
+			return snapshotId.replace(serverName + SNAPSHOT_ID_DELIMITER, "");
+		}
+		return snapshotId;
+	}
+
+	private String extractServerNameFromSnapshotId(String snapshotId) {
+		if (snapshotId == null) {
+			return null;
+		}
+		if (snapshotId.contains(SNAPSHOT_ID_DELIMITER)) {
+			return snapshotId.substring(0, snapshotId.indexOf(SNAPSHOT_ID_DELIMITER));
+		}
+		return snapshotId;
+	}
+
+	private @Nullable
+	Snapshot toSnapshot(String serverName, @Nullable JSONObject json) throws CloudException, InternalException {
+		if (json == null) {
+			return null;
+		}
+
+		try {
+			String snapshotId = buildSnapshotId(serverName, json.getString("Name"));
+			String regionId = provider.getContext().getRegionId();
+			String snapshotName = (json.has("Name") ? json.getString("Name") : null);
+			if (snapshotName == null) {
+				snapshotName = snapshotId;
+			}
+
+			String description = (json.has("Description") ? json.getString("Description") : null);
+			if (description == null) {
+				description = snapshotName;
+			}
+
+			long created = (json.has("DateCreated") ? provider.parseTimestamp(json.getString("DateCreated")) : -1L);
+
+			Snapshot snapshot = new Snapshot();
+			snapshot.setCurrentState(SnapshotState.AVAILABLE);
+			snapshot.setDescription(description);
+			snapshot.setName(snapshotName);
+			snapshot.setOwner(provider.getContext().getAccountNumber());
+			snapshot.setProviderSnapshotId(snapshotId);
+			snapshot.setRegionId(regionId);
+			snapshot.setSizeInGb(-1);
+			snapshot.setSnapshotTimestamp(created);
+			snapshot.setVolumeId(serverName);
+			return snapshot;
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		}
+	}
+
+	private String buildSnapshotId(String serverName, String snapshotId) throws JSONException {
+		return serverName + SNAPSHOT_ID_DELIMITER + snapshotId;
+	}
+
+	@Override
+	public Requirement identifyAttachmentRequirement() throws InternalException, CloudException {
+		return Requirement.REQUIRED;
+	}
+
+	@Override
+	public boolean isPublic(String snapshotId) throws InternalException, CloudException {
+		return false;
+	}
+
+	@Override
+	public boolean isSubscribed() throws InternalException, CloudException {
+		return true;
+	}
+
+	@Override
+	public Iterable<String> listShares(String snapshotId) throws InternalException, CloudException {
+		return Collections.emptyList();
+	}
+
+	@Override
+	public Iterable<ResourceStatus> listSnapshotStatus() throws InternalException, CloudException {
+		// can't do a lookup of snapshots across the account - must be tied to a
+		// server
+		return Collections.emptyList();
+	}
+
+	@Override
+	public Iterable<Snapshot> listSnapshots() throws InternalException, CloudException {
+		return Collections.emptyList();
+	}
+
+	@Override
+	public Iterable<Snapshot> listSnapshots(SnapshotFilterOptions options) throws InternalException, CloudException {
+		APITrace.begin(provider, "listSnapshots");
+		try {
+			if (options == null || options.getTags() == null || !options.getTags().containsKey("Server")) {
+				throw new CloudException("Tag with name of 'Server' and value of server name is required");
+			}
+			APIHandler method = new APIHandler(provider);
+			JSONObject post = new JSONObject();
+			if (options.getAccountNumber() != null) {
+				post.put("AccountAlias", options.getAccountNumber());
+			}
+			post.put("Name", options.getTags().get("Server"));
+			APIResponse response = method.post("Server/GetSnapshots/JSON", post.toString());
+			response.validate();
+
+			ArrayList<Snapshot> snapshots = new ArrayList<Snapshot>();
+
+			JSONObject json = response.getJSON();
+			if (json.has("Snapshots")) {
+				for (int i = 0; i < json.getJSONArray("Snapshots").length(); i++) {
+					snapshots.add(toSnapshot(options.getTags().get("Server"), json.getJSONArray("Snapshots").getJSONObject(i)));
+				}
+			}
+
+			return snapshots;
+
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			APITrace.end();
+		}
+
+	}
+
+	@Override
+	public void remove(String snapshotId) throws InternalException, CloudException {
+		APITrace.begin(provider, "remove");
+		try {
+			if (snapshotId == null) {
+				throw new CloudException("SnapshotId is required");
+			}
+
+			String serverName = extractServerNameFromSnapshotId(snapshotId);
+			snapshotId = removeServerNameFromSnapshotId(snapshotId, serverName);
+
+			APIHandler method = new APIHandler(provider);
+			JSONObject post = new JSONObject();
+			post.put("Name", serverName);
+			post.put("SnapshotName", snapshotId);
+			APIResponse response = method.post("Server/DeleteSnapshot/JSON", "");
+			response.validate();
+
+		} catch (JSONException e) {
+			throw new CloudException(e);
+		} finally {
+			APITrace.end();
+		}
+	}
+
+	@Override
+	public void removeAllSnapshotShares(String providerSnapshotId) throws CloudException, InternalException {
+		// unimplemented
+
+	}
+
+	@Override
+	public void removeSnapshotShare(String providerSnapshotId, String accountNumber) throws CloudException,
+			InternalException {
+		// unimplemented
+
+	}
+
+	@Override
+	public void removePublicShare(String providerSnapshotId) throws CloudException, InternalException {
+		// unimplemented
+
+	}
+
+	@Override
+	public void removeTags(String snapshotId, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void removeTags(String[] snapshotIds, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public Iterable<Snapshot> searchSnapshots(SnapshotFilterOptions options) throws InternalException, CloudException {
+		return listSnapshots(options);
+	}
+
+	@Override
+	public void updateTags(String snapshotId, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public void updateTags(String[] snapshotIds, Tag... tags) throws CloudException, InternalException {
+		throw new OperationNotSupportedException();
+	}
+
+	@Override
+	public SnapshotCapabilities getCapabilities() throws CloudException, InternalException {
+        if( capabilities == null ) {
+            capabilities = new Tier3SnapshotCapabilities(provider);
         }
-    }
+        return capabilities;
+	}
 
-    private String removeServerNameFromSnapshotId(String snapshotId, String serverName) {
-        snapshotId = snapshotId.replace(serverName + SNAPSHOT_ID_DELIMITER, "");
-        return snapshotId;
-    }
-
-    private String extractServerNameFromSnapshotId(String snapshotId) {
-        String serverName = snapshotId.substring(0, snapshotId.indexOf(SNAPSHOT_ID_DELIMITER));
-        return serverName;
-    }
-
-    private @Nullable
-    Snapshot toSnapshot(String serverName, @Nullable JSONObject json) throws CloudException, InternalException {
-        if (json == null) {
-            return null;
-        }
-
-        try {
-            String snapshotId = buildSnapshotId(serverName, json.getString("Name"));
-            String regionId = provider.getContext().getRegionId();
-            String snapshotName = (json.has("Name") ? json.getString("Name") : null);
-            if (snapshotName == null) {
-                snapshotName = snapshotId;
-            }
-
-            String description = (json.has("Description") ? json.getString("Description") : null);
-            if (description == null) {
-                description = snapshotName;
-            }
-
-            long created = (json.has("DateCreated") ? provider.parseTimestamp(json.getString("DateCreated")) : -1L);
-
-            Snapshot snapshot = new Snapshot();
-            snapshot.setCurrentState(SnapshotState.AVAILABLE);
-            snapshot.setDescription(description);
-            snapshot.setName(snapshotName);
-            snapshot.setOwner(provider.getContext().getAccountNumber());
-            snapshot.setProviderSnapshotId(snapshotId);
-            snapshot.setRegionId(regionId);
-            snapshot.setSizeInGb(-1);
-            snapshot.setSnapshotTimestamp(created);
-            snapshot.setVolumeId(serverName);
-            return snapshot;
-        } catch (JSONException e) {
-            throw new CloudException(e);
-        }
-    }
-
-    private String buildSnapshotId(String serverName, String snapshotId) throws JSONException {
-        return serverName + SNAPSHOT_ID_DELIMITER + snapshotId;
-    }
-
-    @Override
-    public Requirement identifyAttachmentRequirement() throws InternalException, CloudException {
-        return Requirement.REQUIRED;
-    }
-
-    @Override
-    public boolean isPublic(String snapshotId) throws InternalException, CloudException {
-        return false;
-    }
-
-    @Override
-    public boolean isSubscribed() throws InternalException, CloudException {
-        return true;
-    }
-
-    @Override
-    public Iterable<String> listShares(String snapshotId) throws InternalException, CloudException {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public Iterable<ResourceStatus> listSnapshotStatus() throws InternalException, CloudException {
-        // can't do a lookup of snapshots across the account - must be tied to a
-        // server
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public Iterable<Snapshot> listSnapshots() throws InternalException, CloudException {
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public Iterable<Snapshot> listSnapshots(SnapshotFilterOptions options) throws InternalException, CloudException {
-        APITrace.begin(provider, "listSnapshots");
-        try {
-            if (options == null || options.getTags() == null || !options.getTags().containsKey("Server")) {
-                throw new CloudException("Tag with name of 'Server' and value of server name is required");
-            }
-            APIHandler method = new APIHandler(provider);
-            JSONObject post = new JSONObject();
-            if (options.getAccountNumber() != null) {
-                post.put("AccountAlias", options.getAccountNumber());
-            }
-            post.put("Name", options.getTags().get("Server"));
-            APIResponse response = method.post("Server/GetSnapshots/JSON", post.toString());
-            response.validate();
-
-            ArrayList<Snapshot> snapshots = new ArrayList<Snapshot>();
-
-            JSONObject json = response.getJSON();
-            if (json.has("Snapshots")) {
-                for (int i = 0; i < json.getJSONArray("Snapshots").length(); i++) {
-                    snapshots.add(toSnapshot(options.getTags().get("Server"), json.getJSONArray("Snapshots").getJSONObject(i)));
-                }
-            }
-
-            return snapshots;
-
-        } catch (JSONException e) {
-            throw new CloudException(e);
-        } finally {
-            APITrace.end();
-        }
-
-    }
-
-    @Override
-    public void remove(String snapshotId) throws InternalException, CloudException {
-        APITrace.begin(provider, "getSnapshot");
-        try {
-            if (snapshotId == null) {
-                throw new CloudException("SnapshotId is required");
-            }
-
-            String serverName = extractServerNameFromSnapshotId(snapshotId);
-            snapshotId = removeServerNameFromSnapshotId(snapshotId, serverName);
-
-            APIHandler method = new APIHandler(provider);
-            JSONObject post = new JSONObject();
-            post.put("Name", serverName);
-            post.put("SnapshotName", snapshotId);
-            APIResponse response = method.post("Server/DeleteSnapshot/JSON", "");
-            response.validate();
-
-        } catch (JSONException e) {
-            throw new CloudException(e);
-        } finally {
-            APITrace.end();
-        }
-    }
-
-    @Override
-    public void removeAllSnapshotShares(String providerSnapshotId) throws CloudException, InternalException {
-        // unimplemented
-
-    }
-
-    @Override
-    public void removeSnapshotShare(String providerSnapshotId, String accountNumber) throws CloudException,
-            InternalException {
-        // unimplemented
-
-    }
-
-    @Override
-    public void removePublicShare(String providerSnapshotId) throws CloudException, InternalException {
-        // unimplemented
-
-    }
-
-    @Override
-    public void removeTags(String snapshotId, Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public void removeTags(String[] snapshotIds, Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public Iterable<Snapshot> searchSnapshots(SnapshotFilterOptions options) throws InternalException, CloudException {
-        return listSnapshots(options);
-    }
-
-    @Override
-    public Iterable<Snapshot> searchSnapshots(String ownerId, String keyword) throws InternalException, CloudException {
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public void shareSnapshot(String snapshotId, String withAccountId, boolean affirmative) throws InternalException,
-            CloudException {
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public Snapshot snapshot(String volumeId, String name, String description, Tag... tags) throws InternalException,
-            CloudException {
-        throw new OperationNotSupportedException("Use the createSnapshot method instead");
-    }
-
-    @Override
-    public boolean supportsSnapshotCopying() throws CloudException, InternalException {
-        return false;
-    }
-
-    @Override
-    public boolean supportsSnapshotCreation() throws CloudException, InternalException {
-        return true;
-    }
-
-    @Override
-    public boolean supportsSnapshotSharing() throws InternalException, CloudException {
-        return false;
-    }
-
-    @Override
-    public boolean supportsSnapshotSharingWithPublic() throws InternalException, CloudException {
-        return false;
-    }
-
-    @Override
-    public void updateTags(String snapshotId, Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public void updateTags(String[] snapshotIds, Tag... tags) throws CloudException, InternalException {
-        throw new OperationNotSupportedException();
-    }
-
-    @Override
-    public SnapshotCapabilities getCapabilities() throws InternalException, CloudException{
-        return new SnapshotCapabilities(){
-            @Nonnull @Override public String getProviderTermForSnapshot(@Nonnull Locale locale){
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Nonnull @Override public Requirement identifyAttachmentRequirement() throws InternalException, CloudException{
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override public boolean supportsSnapshotCopying() throws CloudException, InternalException{
-                return false;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override public boolean supportsSnapshotCreation() throws CloudException, InternalException{
-                return false;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override public boolean supportsSnapshotSharing() throws InternalException, CloudException{
-                return false;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Override public boolean supportsSnapshotSharingWithPublic() throws InternalException, CloudException{
-                return false;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Nonnull @Override public String getAccountNumber(){
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-
-            @Nonnull @Override public String getRegionId(){
-                return null;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-        };
-    }
 }
